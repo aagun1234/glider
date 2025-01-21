@@ -8,7 +8,7 @@
 
 Fork from https://github.com/nadoo/glider
 
-Add an management interface:
+Add a management interface:
 
 [glider.conf]
 ...
