@@ -19,6 +19,7 @@ var (
 
 	// UDPBufSize is the size of udp buffer.
 	UDPBufSize = 2 << 10
+	
 )
 
 // Conn is a connection with buffered reader.
@@ -54,6 +55,7 @@ func (c *Conn) Close() error {
 // Relay relays between left and right.
 func Relay(left, right net.Conn) error {
 	var err, err1 error
+
 	var wg sync.WaitGroup
 	var wait = 5 * time.Second
 
@@ -125,6 +127,7 @@ func worthTry(src io.Reader) bool {
 // CopyN copies n bytes (or until an error) from src to dst.
 func CopyN(dst io.Writer, src io.Reader, n int64) (written int64, err error) {
 	written, err = Copy(dst, io.LimitReader(src, n))
+	
 	if written == n {
 		return n, nil
 	}

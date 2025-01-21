@@ -23,6 +23,7 @@ type Proxy interface {
 var (
 	msg    strings.Builder
 	usages = make(map[string]string)
+
 )
 
 // AddUsage adds help message for the named proxy.
