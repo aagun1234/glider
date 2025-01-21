@@ -6,6 +6,20 @@
 [![Actions Status](https://img.shields.io/github/actions/workflow/status/nadoo/glider/build.yml?branch=dev&style=flat-square)](https://github.com/nadoo/glider/actions)
 [![DockerHub](https://img.shields.io/docker/image-size/nadoo/glider?color=blue&label=docker&style=flat-square)](https://hub.docker.com/r/nadoo/glider)
 
+Fork from https://github.com/nadoo/glider
+Add an management interface:
+[glider.conf]
+status=127.0.0.1:8880
+
+http://127.0.0.1:8880/status    #show all forward
+http://127.0.0.1:8880/status?id=765023842    #show forward with id
+http://127.0.0.1:8880/status?enabled=1    #show all enabled forwards
+http://127.0.0.1:8880/status?enabled=0    #show all disabled forwards
+http://127.0.0.1:8880/operation?op=disable&id=765023842    #disable forward with id
+http://127.0.0.1:8880/operation?op=enable&id=765023842    #enable forward with id
+http://127.0.0.1:8880/operation?op=check&id=765023842    #check forward now with id
+
+
 glider is a forward proxy with multiple protocols support, and also a dns/dhcp server with ipset management features(like dnsmasq).
 
 we can set up local listeners as proxy servers, and forward requests to internet via forwarders.
