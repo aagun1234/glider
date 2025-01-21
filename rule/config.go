@@ -20,6 +20,7 @@ type Config struct {
 	Domain []string
 	IP     []string
 	CIDR   []string
+	StatusServer string
 }
 
 // Strategy configurations.
@@ -61,6 +62,8 @@ func NewConfFromFile(ruleFile string) (*Config, error) {
 	f.StringSliceVar(&p.Domain, "domain", nil, "domain")
 	f.StringSliceVar(&p.IP, "ip", nil, "ip")
 	f.StringSliceVar(&p.CIDR, "cidr", nil, "cidr")
+	//status server
+	f.StringVar(&p.StatusServer, "status", "", "status server")
 
 	err := f.Parse()
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/nadoo/glider/pkg/log"
 	"github.com/nadoo/glider/proxy"
@@ -153,4 +154,181 @@ func (p *Proxy) Check() {
 	for _, fwdrGroup := range p.all {
 		fwdrGroup.Check()
 	}
+}
+
+type ProxyStatus struct {
+	ID		uint32 `json:"id"`
+	URL         string `json:"url"`
+	Priority    uint32 `json:"priority"`
+	MaxFailures 	uint32 `json:"max_failures"` // maxfailures to set to Disabled
+	Enabled    bool `json:"enabled"`
+	ChkCount	uint32 `json:"chkcount"`
+	MDisabled    bool `json:"manualy_disabled"`
+	Failures    uint32 `json:"failures"`
+	Latency     int64  `json:"latency"`
+	InBytes		uint64 `json:"inbytes"`
+	OutBytes		uint64 `json:"outbytes"`
+}
+
+func (p *Proxy) GetMainStatus(index uint32) []ProxyStatus {
+	pstatus:=[]ProxyStatus{}
+	aa:=make(map[uint32]bool)
+
+
+		for i := 0; i < len(p.main.fwdrs); i++ {
+			status:=ProxyStatus{
+				ID:		p.main.fwdrs[i].FID(),
+				URL:         p.main.fwdrs[i].url,
+				Priority:    p.main.fwdrs[i].Priority(),
+				MaxFailures: p.main.fwdrs[i].MaxFailures(),
+				Enabled:    p.main.fwdrs[i].Enabled(),
+				ChkCount:	p.main.fwdrs[i].ChkCount(),
+				MDisabled:    p.main.fwdrs[i].MDisabled(),
+				Failures:    p.main.fwdrs[i].Failures(),
+				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
+			}
+			if index==0 || index==p.main.fwdrs[i].FID() {
+				if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[p.main.fwdrs[i].FID()]=true
+				}
+			}
+
+		}
+
+	for _,fg := range p.all {	
+		for i := 0; i < len(fg.fwdrs); i++ {
+			status:=ProxyStatus{
+				ID:		fg.fwdrs[i].FID(),
+				URL:         fg.fwdrs[i].url,
+				Priority:    fg.fwdrs[i].Priority(),
+				MaxFailures: fg.fwdrs[i].MaxFailures(),
+				Enabled:    fg.fwdrs[i].Enabled(),
+				MDisabled:    fg.fwdrs[i].MDisabled(),
+				Failures:    fg.fwdrs[i].Failures(),
+				ChkCount:	fg.fwdrs[i].ChkCount(),
+				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
+			}
+			if index==0 || index==fg.fwdrs[i].FID() {
+				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[fg.fwdrs[i].FID()]=true
+				}
+			}
+
+		}
+	}
+
+	return pstatus
+}
+
+func (p *Proxy) GetMainEnabled(stat bool) []ProxyStatus {
+	pstatus:=[]ProxyStatus{}
+	aa:=make(map[uint32]bool)
+
+		for i := 0; i < len(p.main.fwdrs); i++ {
+			status:=ProxyStatus{
+				ID:		p.main.fwdrs[i].FID(),
+				URL:         p.main.fwdrs[i].url,
+				Priority:    p.main.fwdrs[i].Priority(),
+				MaxFailures: p.main.fwdrs[i].MaxFailures(),
+				Enabled:    p.main.fwdrs[i].Enabled(),
+				MDisabled:    p.main.fwdrs[i].MDisabled(),
+				ChkCount:	p.main.fwdrs[i].ChkCount(),
+				Failures:    p.main.fwdrs[i].Failures(),
+				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
+			}
+			if p.main.fwdrs[i].Enabled() == stat {
+				if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[p.main.fwdrs[i].FID()]=true
+				}
+			}
+
+		}
+	for _,fg := range p.all {	
+		for i := 0; i < len(fg.fwdrs); i++ {
+			status:=ProxyStatus{
+				ID:		fg.fwdrs[i].FID(),
+				URL:         fg.fwdrs[i].url,
+				Priority:    fg.fwdrs[i].Priority(),
+				MaxFailures: fg.fwdrs[i].MaxFailures(),
+				Enabled:    fg.fwdrs[i].Enabled(),
+				ChkCount:	fg.fwdrs[i].ChkCount(),
+				MDisabled:    fg.fwdrs[i].MDisabled(),
+				Failures:    fg.fwdrs[i].Failures(),
+				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
+			}
+			if fg.fwdrs[i].Enabled() == stat {
+				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[fg.fwdrs[i].FID()]=true
+				}
+			}
+
+		}
+	}
+	return pstatus
+}
+
+
+func (p *Proxy) OperateMainbyID(id uint32, stat string) uint32{
+
+	for i := 0; i < len(p.main.fwdrs); i++ {
+		if id==p.main.fwdrs[i].FID() {
+			switch stat {
+				case "enable":
+					p.main.fwdrs[i].MEnable()
+					return id
+				case "disable":
+					p.main.fwdrs[i].MDisable()
+					return id
+				default:
+			}
+		}
+
+	}
+	for _,fg := range p.all {	
+		for i := 0; i < len(fg.fwdrs); i++ {
+			if id==fg.fwdrs[i].FID() {
+				switch stat {
+					case "enable":
+						fg.fwdrs[i].MEnable()
+						return id
+					case "disable":
+						fg.fwdrs[i].MDisable()
+						return id
+					default:
+				}
+			}
+
+		}
+	}
+
+	return 0
+}
+
+
+
+
+func (p *Proxy) SetCheckNow(id uint32) uint32{
+
+	for i := 0; i < len(p.main.fwdrs); i++ {
+		if id==p.main.fwdrs[i].FID() {
+			p.main.fwdrs[i].SetCheckNow()
+			return id
+		}
+
+	}
+	for _,fg := range p.all {	
+		for i := 0; i < len(fg.fwdrs); i++ {
+			if id==fg.fwdrs[i].FID() {
+				fg.fwdrs[i].SetCheckNow()
+				return id
+			}
+
+		}
+	}
+
+	return 0
 }

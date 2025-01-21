@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"math/rand"
 
 	"github.com/nadoo/glider/pkg/log"
 	"github.com/nadoo/glider/proxy"
@@ -18,13 +19,19 @@ type StatusHandler func(*Forwarder)
 // Forwarder associates with a `-forward` command, usually a dialer or a chain of dialers.
 type Forwarder struct {
 	proxy.Dialer
+	fid			uint32
 	url         string
 	addr        string
 	priority    uint32
 	maxFailures uint32 // maxfailures to set to Disabled
 	disabled    uint32
+	mdisabled	uint32
 	failures    uint32
+	chkcount	uint32
+	checknow	uint32
 	latency     int64
+	inbytes		uint64
+	outbytes	uint64
 	intface     string // local interface or ip address
 	handlers    []StatusHandler
 }
@@ -32,6 +39,9 @@ type Forwarder struct {
 // ForwarderFromURL parses `forward=` command value and returns a new forwarder.
 func ForwarderFromURL(s, intface string, dialTimeout, relayTimeout time.Duration) (f *Forwarder, err error) {
 	f = &Forwarder{url: s}
+	
+	rand.Seed(time.Now().UnixNano())
+	f.fid=rand.Uint32()
 
 	ss := strings.Split(s, "#")
 	if len(ss) > 1 {
@@ -78,6 +88,7 @@ func ForwarderFromURL(s, intface string, dialTimeout, relayTimeout time.Duration
 // DirectForwarder returns a direct forwarder.
 func DirectForwarder(intface string, dialTimeout, relayTimeout time.Duration) (*Forwarder, error) {
 	d, err := proxy.NewDirect(intface, dialTimeout, relayTimeout)
+
 	if err != nil {
 		return nil, err
 	}
@@ -122,9 +133,39 @@ func (f *Forwarder) Dial(network, addr string) (c net.Conn, err error) {
 	return c, err
 }
 
+
+func (f *Forwarder) IncChkCount() {
+	atomic.AddUint32(&f.chkcount, 1)
+}
+func (f *Forwarder) SetChkCount(v uint32) {
+	atomic.StoreUint32(&f.chkcount, v)
+}
+// get bytes
+func (f *Forwarder) ChkCount() uint32{
+	return atomic.LoadUint32(&f.chkcount)
+}
+
+func (f *Forwarder) SetCheckNow() {
+	atomic.StoreUint32(&f.checknow, 1)
+}
+// get bytes
+func (f *Forwarder) GetCheckNow()  bool {
+	if isTrue(atomic.LoadUint32(&f.checknow)) {
+		atomic.StoreUint32(&f.checknow, 0)
+		return true
+	} else {
+		return false
+	}
+}
+
+
 // Failures returns the failuer count of forwarder.
 func (f *Forwarder) Failures() uint32 {
 	return atomic.LoadUint32(&f.failures)
+}
+// Failures returns the failuer count of forwarder.
+func (f *Forwarder) FID() uint32 {
+	return atomic.LoadUint32(&f.fid)
 }
 
 // IncFailures increase the failuer count by 1.
@@ -141,6 +182,32 @@ func (f *Forwarder) IncFailures() {
 		f.Disable()
 	}
 }
+
+
+// add bytes
+func (f *Forwarder) AddInBytes(v uint64) {
+	atomic.AddUint64(&f.inbytes, v)
+}
+
+func (f *Forwarder) AddOutBytes(v uint64) {
+	atomic.AddUint64(&f.outbytes, v)
+}
+// get bytes
+func (f *Forwarder) InBytes() uint64{
+	return atomic.LoadUint64(&f.inbytes)
+}
+
+func (f *Forwarder) OutBytes() uint64{
+	return atomic.LoadUint64(&f.outbytes)
+
+}
+
+
+// IncFailures increase the failuer count by 1.
+func (f *Forwarder) SetFailures(v uint32) {
+	atomic.StoreUint32(&f.failures, v)
+}
+
 
 // AddHandler adds a custom handler to handle the status change event.
 func (f *Forwarder) AddHandler(h StatusHandler) {
@@ -166,9 +233,43 @@ func (f *Forwarder) Disable() {
 	}
 }
 
+// Enable the forwarder.
+func (f *Forwarder) MEnable() {
+	if atomic.CompareAndSwapUint32(&f.mdisabled, 1, 0) {
+		for _, h := range f.handlers {
+			h(f)
+		}
+	}
+	if atomic.CompareAndSwapUint32(&f.disabled, 1, 0) {
+		for _, h := range f.handlers {
+			h(f)
+		}
+	}
+	atomic.StoreUint32(&f.failures, 0)
+}
+
+// Disable the forwarder.
+func (f *Forwarder) MDisable() {
+	if atomic.CompareAndSwapUint32(&f.mdisabled, 0, 1) {
+		for _, h := range f.handlers {
+			h(f)
+		}
+	}
+}
+
 // Enabled returns the status of forwarder.
 func (f *Forwarder) Enabled() bool {
-	return !isTrue(atomic.LoadUint32(&f.disabled))
+	if !isTrue(atomic.LoadUint32(&f.mdisabled)) {
+		return !isTrue(atomic.LoadUint32(&f.disabled))
+	} else {
+		return !isTrue(atomic.LoadUint32(&f.mdisabled))
+	}
+}
+
+// Enabled returns the status of forwarder.
+func (f *Forwarder) MDisabled() bool {
+	return isTrue(atomic.LoadUint32(&f.mdisabled))
+	
 }
 
 func isTrue(n uint32) bool {

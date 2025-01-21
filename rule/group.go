@@ -11,6 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"math/rand"
 
 	"github.com/nadoo/glider/pkg/log"
 	"github.com/nadoo/glider/proxy"
@@ -55,6 +56,8 @@ func NewFwdrGroup(rulePath string, s []string, c *Strategy) *FwdrGroup {
 		if err != nil {
 			log.Fatal(err)
 		}
+		rand.Seed(time.Now().UnixNano())
+		direct.fid=rand.Uint32()
 		fwdrs = append(fwdrs, direct)
 		c.Strategy = "rr"
 	}
@@ -189,6 +192,7 @@ func (p *FwdrGroup) onStatusChanged(fwdr *Forwarder) {
 func (p *FwdrGroup) Check() {
 	if len(p.fwdrs) == 1 {
 		log.F("[group] %s: only 1 forwarder found, disable health checking", p.name)
+		p.fwdrs[0].MEnable() 
 		return
 	}
 
@@ -232,10 +236,18 @@ func (p *FwdrGroup) Check() {
 
 func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 	wait := uint8(0)
-	intval := time.Duration(p.config.CheckInterval) * time.Second
+	fwdr.SetChkCount(0)
+	//intval := time.Duration(p.config.CheckInterval) * time.Second
 
 	for {
-		time.Sleep(intval * time.Duration(wait))
+		ii:=0
+		for ii<(p.config.CheckInterval*int(wait)) {
+			if fwdr.GetCheckNow() {
+				break
+			}
+			ii++
+			time.Sleep(time.Duration(1) * time.Second)
+		}
 
 		// check all forwarders at least one time
 		if wait > 0 && (fwdr.Priority() < p.Priority()) {
@@ -245,8 +257,13 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 		if fwdr.Enabled() && p.config.CheckDisabledOnly {
 			continue
 		}
+		
+		//if fwdr.MDisabled() {
+		//	continue
+		//}
 
 		elapsed, err := checker.Check(fwdr)
+		fwdr.IncChkCount()
 		if err != nil {
 			if errors.Is(err, proxy.ErrNotSupported) {
 				fwdr.SetMaxFailures(0)
@@ -256,8 +273,8 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 			}
 
 			wait++
-			if wait > 16 {
-				wait = 16
+			if wait > 4 {
+				wait = 4
 			}
 
 			log.F("[check] %s: %s(%d), FAILED. error: %s", p.name, fwdr.Addr(), fwdr.Priority(), err)
