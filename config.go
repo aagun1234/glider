@@ -23,6 +23,7 @@ type Config struct {
 	UDPBufSize int
 
 	Listens []string
+	StatusServer string
 
 	Forwards []string
 	Strategy rule.Strategy
@@ -90,6 +91,10 @@ check=disable: disable health check`)
 
 	// service configs
 	flag.StringSliceUniqVar(&conf.Services, "service", nil, "run specified services, format: SERVICE_NAME[,SERVICE_CONFIG]")
+
+	//status server
+	flag.StringVar(&conf.StatusServer, "status", "", "status server")
+
 
 	flag.Usage = usage
 	if err := flag.Parse(); err != nil {

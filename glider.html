@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Status Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .config {
+            margin-bottom: 20px;
+        }
+        .config input {
+            padding: 5px;
+            width: 300px;
+            margin-right: 10px;
+        }
+        .config button {
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .status-enabled {
+            color: #4CAF50;
+        }
+        .status-disabled {
+            color: #f44336;
+        }
+        button.enable {
+            background-color: #4CAF50;
+            color: white;
+        }
+        button.disable {
+            background-color: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Service Status Dashboard</h1>
+    <div class="config">
+        <label for="api-url">API Base URL:</label>
+        <input type="text" id="api-url" placeholder="Enter API base URL (e.g., http://192.168.99.60:8880)" value="http://192.168.99.60:8880">
+        <button onclick="updateApiUrl()">Update</button>
+    </div>
+    <table id="services-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>URL</th>
+                <th>Priority</th>
+                <th>Max Failures</th>
+                <th>Checks</th>
+                <th>Failures</th>
+                <th>Latency (ms)</th>
+                <th>Enabled</th>
+                <th>Manually Disabled</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be dynamically inserted here -->
+        </tbody>
+    </table>
+
+    <script>
+        let apiBaseUrl = document.getElementById('api-url').value; // 从输入框获取默认值
+
+        // 更新 API 地址的函数
+        function updateApiUrl() {
+            const input = document.getElementById('api-url');
+            const newUrl = input.value.trim();
+            if (newUrl) {
+                apiBaseUrl = newUrl;
+                loadServices(); // 重新加载服务状态
+            } else {
+                alert('Please enter a valid API URL.');
+            }
+        }
+
+        // 获取所有服务状态的函数
+        async function fetchServices() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/status`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch services');
+                }
+                const services = await response.json();
+                return services;
+            } catch (error) {
+                console.error('Error fetching services:', error);
+                return [];
+            }
+        }
+
+        // 启用或禁用服务的函数
+        async function toggleService(id, enable) {
+            const op = enable ? 'enable' : 'disable';
+            try {
+                const response = await fetch(`${apiBaseUrl}/operation?op=${op}&id=${id}`);
+                if (!response.ok) {
+                    throw new Error('Failed to toggle service');
+                }
+                loadServices(); // 重新加载服务状态
+            } catch (error) {
+                console.error('Error toggling service:', error);
+            }
+        }
+        // 启用或禁用服务的函数
+        async function checkService(id) {
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/operation?op=check&id=${id}`);
+                if (!response.ok) {
+                    throw new Error('Failed to Check service');
+                }
+                loadServices(); // 重新加载服务状态
+            } catch (error) {
+                console.error('Error Check service:', error);
+            }
+        }
+
+        // 渲染服务状态的函数
+        function renderServices(services) {
+            const tbody = document.querySelector('#services-table tbody');
+            tbody.innerHTML = ''; // 清空当前内容
+
+            services.forEach(service => {
+                const row = document.createElement('tr');
+
+                // 填充服务信息
+                row.innerHTML = `
+                    <td>${service.id}</td>
+                    <td>${service.url}</td>
+                    <td>${service.priority}</td>
+                    <td>${service.max_failures}</td>
+                    <td>${service.chkcount}</td>
+                    <td>${service.failures}</td>
+                    <td>${service.latency}</td>
+                    <td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">
+                        ${service.enabled ? 'Yes' : 'No'}
+                    </td>
+                    <td>${service.manualy_disabled ? 'Yes' : 'No'}</td>
+                    <td>
+                        <button class="${service.enabled ? 'disable' : 'enable'}" 
+                                onclick="toggleService(${service.id}, ${!service.enabled})">
+                            ${service.enabled ? 'Disable' : 'Enable'}
+                        </button>
+						&nbsp;
+                        <button onclick="checkService(${service.id})">
+                            CheckNow
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // 加载服务状态的函数
+        async function loadServices() {
+            const services = await fetchServices();
+            renderServices(services);
+        }
+
+        // 页面加载时自动加载服务状态
+        window.onload = loadServices;
+    </script>
+</body>
+</html>
