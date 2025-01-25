@@ -237,11 +237,13 @@ func (p *FwdrGroup) Check() {
 func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 	wait := uint8(0)
 	fwdr.SetChkCount(0)
+	fwdr.SetTotalFails(0)
+	fwdr.SetFailures(0)
 	//intval := time.Duration(p.config.CheckInterval) * time.Second
 
 	for {
 		ii:=0
-		for ii<(p.config.CheckInterval*int(wait)) {
+		for ii<=(p.config.CheckInterval*int(wait/2)) {
 			if fwdr.GetCheckNow() {
 				break
 			}
@@ -273,16 +275,17 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 			}
 
 			wait++
-			if wait > 4 {
-				wait = 4
+			if wait > 6 {
+				wait = 6
 			}
 
 			log.F("[check] %s: %s(%d), FAILED. error: %s", p.name, fwdr.Addr(), fwdr.Priority(), err)
 			fwdr.Disable()
+			
 			continue
 		}
 
-		wait = 1
+		wait = 2
 		p.setLatency(fwdr, elapsed)
 		log.F("[check] %s: %s(%d), SUCCESS. Elapsed: %dms, Latency: %dms.",
 			p.name, fwdr.Addr(), fwdr.Priority(), elapsed.Milliseconds(), time.Duration(fwdr.Latency()).Milliseconds())

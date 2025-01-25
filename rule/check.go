@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"math/rand"
 
 	"github.com/nadoo/glider/pkg/pool"
 )
@@ -78,6 +79,29 @@ func newHttpChecker(addr, uri, expect string, timeout time.Duration, withTLS boo
 	return c
 }
 
+
+func randomString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	rand.Seed(time.Now().UnixNano()) 
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
+
+func replaceWithRandomString(input, substr string) string {
+	rand.Seed(time.Now().UnixNano()) 
+
+	randomLength := rand.Intn(16) + 1
+
+	randomStr := randomString(randomLength)
+
+
+	return strings.ReplaceAll(input, substr, randomStr)
+}
+
 // Check implements the Checker interface.
 func (c *httpChecker) Check(fwdr *Forwarder) (time.Duration, error) {
 	startTime := time.Now()
@@ -99,9 +123,10 @@ func (c *httpChecker) Check(fwdr *Forwarder) (time.Duration, error) {
 	if c.timeout > 0 {
 		rc.SetDeadline(time.Now().Add(c.timeout))
 	}
-
+	uri:=replaceWithRandomString(c.uri,"${RANDOM_STR1}")
+	uri=replaceWithRandomString(uri,"${RANDOM_STR2}")
 	if _, err = io.WriteString(rc,
-		"GET "+c.uri+" HTTP/1.1\r\nHost:"+c.serverName+"\r\n\r\n"); err != nil {
+		"GET "+uri+" HTTP/1.1\r\nHost:"+c.serverName+"\r\n\r\n"); err != nil {
 		return 0, err
 	}
 

@@ -164,16 +164,20 @@ type ProxyStatus struct {
 	Enabled    bool `json:"enabled"`
 	ChkCount	uint32 `json:"chkcount"`
 	MDisabled    bool `json:"manualy_disabled"`
-	Failures    uint32 `json:"failures"`
+	TotalFails    uint32 `json:"failures"`
 	Latency     int64  `json:"latency"`
 	InBytes		uint64 `json:"inbytes"`
 	OutBytes		uint64 `json:"outbytes"`
 }
 
-func (p *Proxy) GetMainStatus(index uint32) []ProxyStatus {
+
+func (p *Proxy) GetMainStatus(index uint32,url,enabled string) []ProxyStatus {
 	pstatus:=[]ProxyStatus{}
 	aa:=make(map[uint32]bool)
-
+	bb:=false
+	if enabled=="1" {
+		bb=true
+	}
 
 		for i := 0; i < len(p.main.fwdrs); i++ {
 			status:=ProxyStatus{
@@ -184,10 +188,10 @@ func (p *Proxy) GetMainStatus(index uint32) []ProxyStatus {
 				Enabled:    p.main.fwdrs[i].Enabled(),
 				ChkCount:	p.main.fwdrs[i].ChkCount(),
 				MDisabled:    p.main.fwdrs[i].MDisabled(),
-				Failures:    p.main.fwdrs[i].Failures(),
+				TotalFails:    p.main.fwdrs[i].TotalFails(),
 				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
 			}
-			if index==0 || index==p.main.fwdrs[i].FID() {
+			if (index==0 || index==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) {
 				if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
 					pstatus=append(pstatus, status)
 					aa[p.main.fwdrs[i].FID()]=true
@@ -205,11 +209,11 @@ func (p *Proxy) GetMainStatus(index uint32) []ProxyStatus {
 				MaxFailures: fg.fwdrs[i].MaxFailures(),
 				Enabled:    fg.fwdrs[i].Enabled(),
 				MDisabled:    fg.fwdrs[i].MDisabled(),
-				Failures:    fg.fwdrs[i].Failures(),
+				TotalFails:    fg.fwdrs[i].TotalFails(),
 				ChkCount:	fg.fwdrs[i].ChkCount(),
 				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
 			}
-			if index==0 || index==fg.fwdrs[i].FID() {
+			if (index==0 || index==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) {
 				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
 					pstatus=append(pstatus, status)
 					aa[fg.fwdrs[i].FID()]=true
@@ -235,7 +239,7 @@ func (p *Proxy) GetMainEnabled(stat bool) []ProxyStatus {
 				Enabled:    p.main.fwdrs[i].Enabled(),
 				MDisabled:    p.main.fwdrs[i].MDisabled(),
 				ChkCount:	p.main.fwdrs[i].ChkCount(),
-				Failures:    p.main.fwdrs[i].Failures(),
+				TotalFails:    p.main.fwdrs[i].TotalFails(),
 				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
 			}
 			if p.main.fwdrs[i].Enabled() == stat {
@@ -256,7 +260,7 @@ func (p *Proxy) GetMainEnabled(stat bool) []ProxyStatus {
 				Enabled:    fg.fwdrs[i].Enabled(),
 				ChkCount:	fg.fwdrs[i].ChkCount(),
 				MDisabled:    fg.fwdrs[i].MDisabled(),
-				Failures:    fg.fwdrs[i].Failures(),
+				TotalFails:    fg.fwdrs[i].TotalFails(),
 				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
 			}
 			if fg.fwdrs[i].Enabled() == stat {
@@ -272,63 +276,107 @@ func (p *Proxy) GetMainEnabled(stat bool) []ProxyStatus {
 }
 
 
-func (p *Proxy) OperateMainbyID(id uint32, stat string) uint32{
-
+func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
+	pstatus:=[]ProxyStatus{}
+	aa:=make(map[uint32]bool)
+	bb:=false
+	if enabled=="1" {
+		bb=true
+	}
+	
 	for i := 0; i < len(p.main.fwdrs); i++ {
-		if id==p.main.fwdrs[i].FID() {
+		status:=ProxyStatus{
+				ID:		p.main.fwdrs[i].FID(),
+				URL:         p.main.fwdrs[i].url,
+				Priority:    p.main.fwdrs[i].Priority(),
+				MaxFailures: p.main.fwdrs[i].MaxFailures(),
+				Enabled:    p.main.fwdrs[i].Enabled(),
+				ChkCount:	p.main.fwdrs[i].ChkCount(),
+				MDisabled:    p.main.fwdrs[i].MDisabled(),
+				TotalFails:    p.main.fwdrs[i].TotalFails(),
+				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
+		}
+		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) {
 			switch stat {
 				case "enable":
 					p.main.fwdrs[i].MEnable()
-					return id
+					status.MDisabled=false
+					status.Enabled=true
 				case "disable":
 					p.main.fwdrs[i].MDisable()
-					return id
+					status.MDisabled=true
+					status.Enabled=false
 				default:
 			}
+			if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
+				pstatus=append(pstatus, status)
+				aa[p.main.fwdrs[i].FID()]=true
+			}
+			
 		}
 
 	}
 	for _,fg := range p.all {	
 		for i := 0; i < len(fg.fwdrs); i++ {
-			if id==fg.fwdrs[i].FID() {
+			status:=ProxyStatus{
+				ID:		fg.fwdrs[i].FID(),
+				URL:         fg.fwdrs[i].url,
+				Priority:    fg.fwdrs[i].Priority(),
+				MaxFailures: fg.fwdrs[i].MaxFailures(),
+				Enabled:    fg.fwdrs[i].Enabled(),
+				ChkCount:	fg.fwdrs[i].ChkCount(),
+				MDisabled:    fg.fwdrs[i].MDisabled(),
+				TotalFails:    fg.fwdrs[i].TotalFails(),
+				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
+			}
+			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) {
 				switch stat {
 					case "enable":
 						fg.fwdrs[i].MEnable()
-						return id
+						status.MDisabled=false
+						status.Enabled=true
 					case "disable":
 						fg.fwdrs[i].MDisable()
-						return id
+						status.MDisabled=true
+						status.Enabled=false
 					default:
+				}
+				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[fg.fwdrs[i].FID()]=true
 				}
 			}
 
 		}
 	}
 
-	return 0
+	return pstatus
 }
 
 
 
-
-func (p *Proxy) SetCheckNow(id uint32) uint32{
+func (p *Proxy) SetCheckNow(id uint32, url, enabled string) {
+	bb:=false
+	if enabled=="1" {
+		bb=true
+	}
 
 	for i := 0; i < len(p.main.fwdrs); i++ {
-		if id==p.main.fwdrs[i].FID() {
+		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) {
 			p.main.fwdrs[i].SetCheckNow()
-			return id
+			
 		}
 
 	}
 	for _,fg := range p.all {	
 		for i := 0; i < len(fg.fwdrs); i++ {
-			if id==fg.fwdrs[i].FID() {
+			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) {
 				fg.fwdrs[i].SetCheckNow()
-				return id
+				
 			}
 
 		}
 	}
 
-	return 0
+	return 
 }

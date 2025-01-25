@@ -27,6 +27,7 @@ type Forwarder struct {
 	disabled    uint32
 	mdisabled	uint32
 	failures    uint32
+	totalfails	uint32
 	chkcount	uint32
 	checknow	uint32
 	latency     int64
@@ -160,16 +161,24 @@ func (f *Forwarder) GetCheckNow()  bool {
 
 
 // Failures returns the failuer count of forwarder.
+func (f *Forwarder) FID() uint32 {
+	return atomic.LoadUint32(&f.fid)
+}
+// Failures returns the failuer count of forwarder.
 func (f *Forwarder) Failures() uint32 {
 	return atomic.LoadUint32(&f.failures)
 }
 // Failures returns the failuer count of forwarder.
-func (f *Forwarder) FID() uint32 {
-	return atomic.LoadUint32(&f.fid)
+func (f *Forwarder) TotalFails() uint32 {
+	return atomic.LoadUint32(&f.totalfails)
+}
+func (f *Forwarder) SetTotalFails(v uint32) {
+	atomic.StoreUint32(&f.totalfails, v)
 }
 
 // IncFailures increase the failuer count by 1.
 func (f *Forwarder) IncFailures() {
+	atomic.AddUint32(&f.totalfails, 1)
 	failures := atomic.AddUint32(&f.failures, 1)
 	if f.MaxFailures() == 0 {
 		return
@@ -203,7 +212,7 @@ func (f *Forwarder) OutBytes() uint64{
 }
 
 
-// IncFailures increase the failuer count by 1.
+// Set Failures count by v.
 func (f *Forwarder) SetFailures(v uint32) {
 	atomic.StoreUint32(&f.failures, v)
 }
@@ -216,12 +225,12 @@ func (f *Forwarder) AddHandler(h StatusHandler) {
 
 // Enable the forwarder.
 func (f *Forwarder) Enable() {
+	atomic.StoreUint32(&f.failures, 0)
 	if atomic.CompareAndSwapUint32(&f.disabled, 1, 0) {
 		for _, h := range f.handlers {
 			h(f)
 		}
 	}
-	atomic.StoreUint32(&f.failures, 0)
 }
 
 // Disable the forwarder.
