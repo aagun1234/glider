@@ -100,8 +100,17 @@ func main() {
 }
 
 
-// 启动HTTP服务器的函数，接收一个Config指针
+//--- http://127.0.0.1:8880/status?id=2387120117
+//--- http://127.0.0.1:8880/status?id=2387120117&url=127.0.0.1:3789&enabled=1
+//--- http://127.0.0.1:8880/operation?url=127.0.0.1:37891&op=enable
+//--- http://127.0.0.1:8880/operation?url=127.0.0.1:37891&op=disable
+//--- http://127.0.0.1:8880/operation?url=127.0.0.1:37891&op=check
+//--- http://127.0.0.1:8880/operation?url=127.0.0.1&op=disable
+//--- http://127.0.0.1:8880/operation?op=check
+//--- 
+// 
 func startServer(p *rule.Proxy, addr string) {
+
 	// 定义HTTP处理函数
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		handler1(w, r, p)
@@ -121,31 +130,25 @@ func startServer(p *rule.Proxy, addr string) {
 // 处理HTTP请求的函数
 
 func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
-	// 设置响应头为JSON格式
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	pstatus:=[]rule.ProxyStatus{}
 	index:=0
 	//fmt.Printf("API : %v",r.URL)
 	query := r.URL.Query()
 	id := query.Get("id") 
 	enabled := query.Get("enabled") 
+	url := query.Get("url")
+	
 	index,err:=strconv.Atoi(id)
 	if err!=nil {
 		index=0
 	}
+	
+		// 设置响应头为JSON格式
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	// 创建要返回的JSON数据
-	if enabled!="" {
-		
-		if enabled=="1" {
-			pstatus=pxy.GetMainEnabled(true)
-		} else {
-			pstatus=pxy.GetMainEnabled(false)
-		}
-	} else {
-		pstatus=pxy.GetMainStatus(uint32(index))
-		
-	}
+	pstatus=pxy.GetMainStatus(uint32(index),url,enabled)
 	// 将结构体数组编码为JSON并写入响应
 	if err := json.NewEncoder(w).Encode(pstatus); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -160,6 +163,12 @@ func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 	query := r.URL.Query()
 	op := query.Get("op")  
 	id := query.Get("id") 
+	url := query.Get("url")
+	enabled := query.Get("enabled") 
+	index,err:=strconv.Atoi(id)
+	if err!=nil {
+		index=0
+	}
 	
 
 	// 根据参数值进行不同的响应
@@ -169,36 +178,26 @@ func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 	}
 	switch op {
 		case "enable", "disable":
-			index,err:=strconv.Atoi(id)
-			if err!=nil {
-				fmt.Fprintf(w, "invalid id")
-				return
-			}
-			pxy.OperateMainbyID(uint32(index),op)
 			// 设置响应头为JSON格式
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 
 			// 创建要返回的JSON数据
-			pstatus:=pxy.GetMainStatus(uint32(index))
+			pstatus:=pxy.OperateMain(uint32(index),url,enabled,op)
+
 			// 将结构体数组编码为JSON并写入响应
 			if err := json.NewEncoder(w).Encode(pstatus); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		case "check":
-			index,err:=strconv.Atoi(id)
-			if err!=nil {
-				fmt.Fprintf(w, "invalid id")
-				return
-			}
-			pxy.SetCheckNow(uint32(index))
+			pxy.SetCheckNow(uint32(index), url, enabled)
 			// 设置响应头为JSON格式
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 
 			// 创建要返回的JSON数据
-			pstatus:=pxy.GetMainStatus(uint32(index))
+			pstatus:=pxy.GetMainStatus(uint32(index),url,"")
 			// 将结构体数组编码为JSON并写入响应
 			if err := json.NewEncoder(w).Encode(pstatus); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
