@@ -73,6 +73,7 @@
 			<tr>
 				<th>ID</th>
 				<th>URL</th>
+				<th>Routes</th>
 				<th>Priority</th>
 				<th>Total<br>Checks</th>
 				<th>Total<br>Failures</th>
@@ -110,7 +111,18 @@
 					throw new Error('Failed to fetch services');
 				}
 				const services = await response.json();
-				return services;
+				const sortedServices = services.sort((a, b) => {
+					const routesA = a.routemap.toLowerCase();
+					const routesB = b.routemap.toLowerCase();
+					if (routesA < routesB) return -1;
+					if (routesA > routesB) return 1;
+					const urlA = a.url.toLowerCase();
+					const urlB = b.url.toLowerCase();
+					if (urlA < urlB) return -1;
+					if (urlA > urlB) return 1;
+					return 0; // 保持顺序不变
+				});
+				return sortedServices;
 			} catch (error) {
 				console.error('Error fetching services:', error);
 				return [];
@@ -156,13 +168,14 @@
 				row.innerHTML = `
 					<td>${service.id}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.url}</td>
+					<td>${service.routemap.replace(/;/g, '<br>')}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.priority}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.chkcount}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.failures}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">
 						${service.enabled ? 'Yes' : 'No'}
 					</td>
-					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.manualy_disabled ? 'Yes' : 'No'}</td>
+					<td >${service.manualy_disabled ? 'Yes' : 'No'}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.latency}</td>
 					<td>
 						<button class="${service.enabled ? 'disable' : 'enable'}" 
@@ -182,6 +195,13 @@
 
 		// 加载服务状态的函数
 		async function loadServices() {
+			const queryString = window.location.search;
+			const input = document.getElementById('api-url');
+			const urlParams = new URLSearchParams(queryString);
+			const backendValue = urlParams.get('backend');
+			if (backendValue) {
+				input.value = backendValue;
+			}
 			const services = await fetchServices();
 			renderServices(services);
 		}

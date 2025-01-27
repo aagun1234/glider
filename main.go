@@ -101,6 +101,11 @@ func main() {
 
 
 //--- http://127.0.0.1:8880/status?id=2387120117
+//--- http://127.0.0.1:8880/status?available=1
+//--- http://127.0.0.1:8880/status?available=true
+//--- http://127.0.0.1:8880/status?enabled=1
+//--- http://127.0.0.1:8880/status?enabled=0
+//--- http://127.0.0.1:8880/status?url=127.0.0.1:3789
 //--- http://127.0.0.1:8880/status?id=2387120117&url=127.0.0.1:3789&enabled=1
 //--- http://127.0.0.1:8880/operation?url=127.0.0.1:37891&op=enable
 //--- http://127.0.0.1:8880/operation?url=127.0.0.1:37891&op=disable
@@ -108,7 +113,10 @@ func main() {
 //--- http://127.0.0.1:8880/operation?url=127.0.0.1&op=disable
 //--- http://127.0.0.1:8880/operation?op=check
 //--- 
-// 
+//  比如可以curl -s 'http://127.0.0.1:8880/status?url=127.0.0.1&available=true' |jq -r '.[].id' 
+//  check返回的并不是check的结果，而是立即check的forward的信息，结果要等健康检查完成后再查询
+//  available的必定是enabled的，disabled的一定不是available的，低优先级的一定不是available的
+
 func startServer(p *rule.Proxy, addr string) {
 
 	// 定义HTTP处理函数
@@ -134,13 +142,17 @@ func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 	index:=0
 	//fmt.Printf("API : %v",r.URL)
 	query := r.URL.Query()
-	id := query.Get("id") 
 	enabled := query.Get("enabled") 
+	available := query.Get("available") 
 	url := query.Get("url")
 	
-	index,err:=strconv.Atoi(id)
+	index,err:=strconv.Atoi(query.Get("id"))
 	if err!=nil {
 		index=0
+	}
+	prio,err1:=strconv.Atoi(query.Get("priority"))
+	if err1!=nil {
+		prio=-1
 	}
 	
 		// 设置响应头为JSON格式
@@ -148,7 +160,11 @@ func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	// 创建要返回的JSON数据
-	pstatus=pxy.GetMainStatus(uint32(index),url,enabled)
+	if available=="1" || available=="true" {
+		pstatus=pxy.GetAvailStatus(uint32(index),url,enabled,prio)
+	} else {
+		pstatus=pxy.GetMainStatus(uint32(index),url,enabled,prio)
+	}
 	// 将结构体数组编码为JSON并写入响应
 	if err := json.NewEncoder(w).Encode(pstatus); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -162,12 +178,15 @@ func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 		//fmt.Printf("API : %v",r.URL)
 	query := r.URL.Query()
 	op := query.Get("op")  
-	id := query.Get("id") 
 	url := query.Get("url")
 	enabled := query.Get("enabled") 
-	index,err:=strconv.Atoi(id)
+	index,err:=strconv.Atoi(query.Get("id"))
 	if err!=nil {
 		index=0
+	}
+	prio,err1:=strconv.Atoi(query.Get("priority"))
+	if err1!=nil {
+		prio=-1
 	}
 	
 
@@ -183,7 +202,7 @@ func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 
 			// 创建要返回的JSON数据
-			pstatus:=pxy.OperateMain(uint32(index),url,enabled,op)
+			pstatus:=pxy.OperateMain(uint32(index), url, enabled, prio, op, "")
 
 			// 将结构体数组编码为JSON并写入响应
 			if err := json.NewEncoder(w).Encode(pstatus); err != nil {
@@ -191,13 +210,34 @@ func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 				return
 			}
 		case "check":
-			pxy.SetCheckNow(uint32(index), url, enabled)
+			pxy.SetCheckNow(uint32(index), url, enabled, prio)
 			// 设置响应头为JSON格式
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 
 			// 创建要返回的JSON数据
-			pstatus:=pxy.GetMainStatus(uint32(index),url,"")
+			pstatus:=pxy.GetMainStatus(uint32(index),url,"",prio)
+			// 将结构体数组编码为JSON并写入响应
+			if err := json.NewEncoder(w).Encode(pstatus); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case "setpriority":
+			stat := query.Get("priority") 
+			_,err=strconv.Atoi(stat)
+			if err!=nil {
+				stat="100"
+			}
+			if prio==-1 {
+				prio=100
+			}
+
+			pstatus:=pxy.OperateMain(uint32(index), url, enabled, -1, op, strconv.Itoa(prio))
+
+			// 设置响应头为JSON格式
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+
 			// 将结构体数组编码为JSON并写入响应
 			if err := json.NewEncoder(w).Encode(pstatus); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
