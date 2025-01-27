@@ -24,12 +24,19 @@ http://127.0.0.1:8880/status?enabled=1    #show all enabled forwards
 
 http://127.0.0.1:8880/status?enabled=0    #show all disabled forwards
 
+http://127.0.0.1:8880/status?url=127.0.0.1:&enabled=1    #show all enabled forwards which forward url like "*127.0.0.1:*"
+
 http://127.0.0.1:8880/operation?op=disable&id=765023842    #disable forward with id
 
 http://127.0.0.1:8880/operation?op=enable&id=765023842    #enable forward with id
 
 http://127.0.0.1:8880/operation?op=check&id=765023842    #check forward now with id
 
+http://127.0.0.1:8880/operation?op=check     #check all forward now
+
+http://127.0.0.1:8880/status?available=1    #show all available forwards
+
+http://127.0.0.1:8880/operation?url=127.0.0.1:&op=enable    #enable all forwards like "*127.0.0.1:*"
 
 
 glider is a forward proxy with multiple protocols support, and also a dns/dhcp server with ipset management features(like dnsmasq).
