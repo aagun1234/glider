@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"strconv"
+	"fmt"
 
 	"github.com/nadoo/glider/pkg/log"
 	"github.com/nadoo/glider/proxy"
@@ -168,123 +170,184 @@ type ProxyStatus struct {
 	Latency     int64  `json:"latency"`
 	InBytes		uint64 `json:"inbytes"`
 	OutBytes		uint64 `json:"outbytes"`
+	Maps	string `json:"routemap"`
 }
 
+func syncMapToString(m *sync.Map, target interface{}) []interface{} {
+	var keys []interface{}
 
-func (p *Proxy) GetMainStatus(index uint32,url,enabled string) []ProxyStatus {
+	// 使用 Range 方法遍历 sync.Map
+	m.Range(func(key, value interface{}) bool {
+		if value == target {
+			keys = append(keys, key) // 将符合条件的键添加到切片中
+		}
+		return true // 继续遍历
+	})
+
+	return keys
+}
+
+func (p *Proxy) MatchRoutes(target interface{}) string {
+
+	mapstr:=""
+	mapstr1:=fmt.Sprintf("%v",syncMapToString(&p.cidrMap,target))
+	if mapstr1!="[]" {
+		mapstr=mapstr+mapstr1+";"
+	}
+	mapstr1=fmt.Sprintf("%v",syncMapToString(&p.ipMap,target))
+	if mapstr1!="[]" {
+		mapstr=mapstr+mapstr1+";"
+	}
+	mapstr1=fmt.Sprintf("%v",syncMapToString(&p.domainMap,target))
+	if mapstr1!="[]" {
+		mapstr=mapstr+mapstr1
+	}
+	return mapstr
+}
+
+func (p *Proxy) GetMainStatus(index uint32, url,enabled string,prio int) []ProxyStatus {
 	pstatus:=[]ProxyStatus{}
 	aa:=make(map[uint32]bool)
 	bb:=false
-	if enabled=="1" {
-		bb=true
-	}
-
-		for i := 0; i < len(p.main.fwdrs); i++ {
-			status:=ProxyStatus{
-				ID:		p.main.fwdrs[i].FID(),
-				URL:         p.main.fwdrs[i].url,
-				Priority:    p.main.fwdrs[i].Priority(),
-				MaxFailures: p.main.fwdrs[i].MaxFailures(),
-				Enabled:    p.main.fwdrs[i].Enabled(),
-				ChkCount:	p.main.fwdrs[i].ChkCount(),
-				MDisabled:    p.main.fwdrs[i].MDisabled(),
-				TotalFails:    p.main.fwdrs[i].TotalFails(),
-				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
-			}
-			if (index==0 || index==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) {
-				if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
-					pstatus=append(pstatus, status)
-					aa[p.main.fwdrs[i].FID()]=true
-				}
-			}
-
-		}
-
-	for _,fg := range p.all {	
-		for i := 0; i < len(fg.fwdrs); i++ {
-			status:=ProxyStatus{
-				ID:		fg.fwdrs[i].FID(),
-				URL:         fg.fwdrs[i].url,
-				Priority:    fg.fwdrs[i].Priority(),
-				MaxFailures: fg.fwdrs[i].MaxFailures(),
-				Enabled:    fg.fwdrs[i].Enabled(),
-				MDisabled:    fg.fwdrs[i].MDisabled(),
-				TotalFails:    fg.fwdrs[i].TotalFails(),
-				ChkCount:	fg.fwdrs[i].ChkCount(),
-				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
-			}
-			if (index==0 || index==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) {
-				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
-					pstatus=append(pstatus, status)
-					aa[fg.fwdrs[i].FID()]=true
-				}
-			}
-
-		}
-	}
-
-	return pstatus
-}
-
-func (p *Proxy) GetMainEnabled(stat bool) []ProxyStatus {
-	pstatus:=[]ProxyStatus{}
-	aa:=make(map[uint32]bool)
-
-		for i := 0; i < len(p.main.fwdrs); i++ {
-			status:=ProxyStatus{
-				ID:		p.main.fwdrs[i].FID(),
-				URL:         p.main.fwdrs[i].url,
-				Priority:    p.main.fwdrs[i].Priority(),
-				MaxFailures: p.main.fwdrs[i].MaxFailures(),
-				Enabled:    p.main.fwdrs[i].Enabled(),
-				MDisabled:    p.main.fwdrs[i].MDisabled(),
-				ChkCount:	p.main.fwdrs[i].ChkCount(),
-				TotalFails:    p.main.fwdrs[i].TotalFails(),
-				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
-			}
-			if p.main.fwdrs[i].Enabled() == stat {
-				if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
-					pstatus=append(pstatus, status)
-					aa[p.main.fwdrs[i].FID()]=true
-				}
-			}
-
-		}
-	for _,fg := range p.all {	
-		for i := 0; i < len(fg.fwdrs); i++ {
-			status:=ProxyStatus{
-				ID:		fg.fwdrs[i].FID(),
-				URL:         fg.fwdrs[i].url,
-				Priority:    fg.fwdrs[i].Priority(),
-				MaxFailures: fg.fwdrs[i].MaxFailures(),
-				Enabled:    fg.fwdrs[i].Enabled(),
-				ChkCount:	fg.fwdrs[i].ChkCount(),
-				MDisabled:    fg.fwdrs[i].MDisabled(),
-				TotalFails:    fg.fwdrs[i].TotalFails(),
-				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
-			}
-			if fg.fwdrs[i].Enabled() == stat {
-				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
-					pstatus=append(pstatus, status)
-					aa[fg.fwdrs[i].FID()]=true
-				}
-			}
-
-		}
-	}
-	return pstatus
-}
-
-
-func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
-	pstatus:=[]ProxyStatus{}
-	aa:=make(map[uint32]bool)
-	bb:=false
-	if enabled=="1" {
+	if enabled!="0" || enabled=="true" {
 		bb=true
 	}
 	
+		for i := 0; i < len(p.main.fwdrs); i++ {
+			mapstr:=p.MatchRoutes(p.main)
+			if mapstr=="" {
+				mapstr="[0/0]"
+			}
+			status:=ProxyStatus{
+				ID:		p.main.fwdrs[i].FID(),
+				URL:         p.main.fwdrs[i].url,
+				Priority:    p.main.fwdrs[i].Priority(),
+				MaxFailures: p.main.fwdrs[i].MaxFailures(),
+				Enabled:    p.main.fwdrs[i].Enabled(),
+				ChkCount:	p.main.fwdrs[i].ChkCount(),
+				MDisabled:    p.main.fwdrs[i].MDisabled(),
+				TotalFails:    p.main.fwdrs[i].TotalFails(),
+				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
+				Maps:	mapstr,
+			}
+			if (index==0 || index==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.fwdrs[i].Priority()) {
+				if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[p.main.fwdrs[i].FID()]=true
+				}
+			}
+
+		}
+
+	for _,fg := range p.all {	
+		for i := 0; i < len(fg.fwdrs); i++ {
+			mapstr:=p.MatchRoutes(fg)
+			status:=ProxyStatus{
+				ID:		fg.fwdrs[i].FID(),
+				URL:         fg.fwdrs[i].url,
+				Priority:    fg.fwdrs[i].Priority(),
+				MaxFailures: fg.fwdrs[i].MaxFailures(),
+				Enabled:    fg.fwdrs[i].Enabled(),
+				MDisabled:    fg.fwdrs[i].MDisabled(),
+				TotalFails:    fg.fwdrs[i].TotalFails(),
+				ChkCount:	fg.fwdrs[i].ChkCount(),
+				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
+				Maps:	mapstr,
+				
+			}
+			if (index==0 || index==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==fg.fwdrs[i].Priority()) {
+				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[fg.fwdrs[i].FID()]=true
+				}
+			}
+
+		}
+	}
+
+	return pstatus
+}
+
+
+
+
+func (p *Proxy) GetAvailStatus(index uint32,url,enabled string,prio int) []ProxyStatus {
+	pstatus:=[]ProxyStatus{}
+	aa:=make(map[uint32]bool)
+	bb:=false
+	if enabled!="0" || enabled=="true" {
+		bb=true
+	}
+	
+		for i := 0; i < len(p.main.avail); i++ {
+			mapstr:=p.MatchRoutes(p.main)
+			if mapstr=="" {
+				mapstr="[0/0]"
+			}
+			status:=ProxyStatus{
+				ID:		p.main.avail[i].FID(),
+				URL:         p.main.avail[i].url,
+				Priority:    p.main.avail[i].Priority(),
+				MaxFailures: p.main.avail[i].MaxFailures(),
+				Enabled:    p.main.avail[i].Enabled(),
+				ChkCount:	p.main.avail[i].ChkCount(),
+				MDisabled:    p.main.avail[i].MDisabled(),
+				TotalFails:    p.main.avail[i].TotalFails(),
+				Latency:     p.main.avail[i].Latency()/int64(time.Millisecond),
+				Maps:	mapstr,
+			}
+			if (index==0 || index==p.main.avail[i].FID()) && (url =="" || strings.Contains(p.main.avail[i].URL(), url)) && (enabled =="" || bb==p.main.avail[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.avail[i].Priority()) {
+				if _, ok := aa[p.main.avail[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[p.main.avail[i].FID()]=true
+				}
+			}
+
+		}
+
+	for _,fg := range p.all {	
+		for i := 0; i < len(fg.avail); i++ {
+			mapstr:=p.MatchRoutes(fg)
+			status:=ProxyStatus{
+				ID:		fg.avail[i].FID(),
+				URL:         fg.avail[i].url,
+				Priority:    fg.avail[i].Priority(),
+				MaxFailures: fg.avail[i].MaxFailures(),
+				Enabled:    fg.avail[i].Enabled(),
+				MDisabled:    fg.avail[i].MDisabled(),
+				TotalFails:    fg.avail[i].TotalFails(),
+				ChkCount:	fg.avail[i].ChkCount(),
+				Latency:     fg.avail[i].Latency()/int64(time.Millisecond),
+				Maps:	mapstr,
+			}
+			if (index==0 || index==fg.avail[i].FID()) && (url =="" || strings.Contains(fg.avail[i].URL(), url)) && (enabled =="" || bb==fg.avail[i].Enabled()) && (prio==-1 || uint32(prio)==fg.avail[i].Priority()) {
+				if _, ok := aa[fg.avail[i].FID()]; !ok {
+					pstatus=append(pstatus, status)
+					aa[fg.avail[i].FID()]=true
+				}
+			}
+
+		}
+	}
+
+	return pstatus
+}
+
+
+
+func (p *Proxy) OperateMain(id uint32, url, enabled string, prio int, op ,stat string) []ProxyStatus{
+	pstatus:=[]ProxyStatus{}
+	aa:=make(map[uint32]bool)
+	bb:=false
+	if enabled!="0" || enabled=="true" {
+		bb=true
+	}
+
 	for i := 0; i < len(p.main.fwdrs); i++ {
+		mapstr:=p.MatchRoutes(p.main)
+		if mapstr=="" {
+			mapstr="[0/0]"
+		}
 		status:=ProxyStatus{
 				ID:		p.main.fwdrs[i].FID(),
 				URL:         p.main.fwdrs[i].url,
@@ -295,9 +358,10 @@ func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
 				MDisabled:    p.main.fwdrs[i].MDisabled(),
 				TotalFails:    p.main.fwdrs[i].TotalFails(),
 				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
+				Maps:	mapstr,
 		}
-		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) {
-			switch stat {
+		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.fwdrs[i].Priority()) {
+			switch op {
 				case "enable":
 					p.main.fwdrs[i].MEnable()
 					status.MDisabled=false
@@ -306,6 +370,12 @@ func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
 					p.main.fwdrs[i].MDisable()
 					status.MDisabled=true
 					status.Enabled=false
+				case "setpriority":
+					pri,err:=strconv.Atoi(stat)
+					if err==nil {
+						p.main.fwdrs[i].SetPriority(uint32(pri))
+						status.Priority=p.main.fwdrs[i].Priority()
+					}
 				default:
 			}
 			if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
@@ -318,6 +388,7 @@ func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
 	}
 	for _,fg := range p.all {	
 		for i := 0; i < len(fg.fwdrs); i++ {
+			mapstr:=p.MatchRoutes(fg)
 			status:=ProxyStatus{
 				ID:		fg.fwdrs[i].FID(),
 				URL:         fg.fwdrs[i].url,
@@ -328,9 +399,10 @@ func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
 				MDisabled:    fg.fwdrs[i].MDisabled(),
 				TotalFails:    fg.fwdrs[i].TotalFails(),
 				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
+				Maps:	mapstr,
 			}
-			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) {
-				switch stat {
+			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==fg.fwdrs[i].Priority()) {
+				switch op {
 					case "enable":
 						fg.fwdrs[i].MEnable()
 						status.MDisabled=false
@@ -339,6 +411,12 @@ func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
 						fg.fwdrs[i].MDisable()
 						status.MDisabled=true
 						status.Enabled=false
+					case "setpriority":
+						pri,err:=strconv.Atoi(stat)
+						if err==nil {
+							fg.fwdrs[i].SetPriority(uint32(pri))
+							status.Priority=fg.fwdrs[i].Priority()
+						}
 					default:
 				}
 				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
@@ -355,14 +433,14 @@ func (p *Proxy) OperateMain(id uint32, url, enabled, stat string) []ProxyStatus{
 
 
 
-func (p *Proxy) SetCheckNow(id uint32, url, enabled string) {
+func (p *Proxy) SetCheckNow(id uint32, url, enabled string, prio int) {
 	bb:=false
-	if enabled=="1" {
+	if enabled!="0" || enabled=="true" {
 		bb=true
 	}
 
 	for i := 0; i < len(p.main.fwdrs); i++ {
-		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) {
+		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.fwdrs[i].Priority()) {
 			p.main.fwdrs[i].SetCheckNow()
 			
 		}
@@ -370,7 +448,7 @@ func (p *Proxy) SetCheckNow(id uint32, url, enabled string) {
 	}
 	for _,fg := range p.all {	
 		for i := 0; i < len(fg.fwdrs); i++ {
-			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) {
+			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==fg.fwdrs[i].Priority()) {
 				fg.fwdrs[i].SetCheckNow()
 				
 			}
