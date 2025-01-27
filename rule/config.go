@@ -20,6 +20,7 @@ type Config struct {
 	Domain []string
 	IP     []string
 	CIDR   []string
+
 	StatusServer string
 }
 
