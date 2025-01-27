@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/nadoo/glider/dns"
 	"github.com/nadoo/glider/ipset"
@@ -119,25 +120,42 @@ func main() {
 
 func startServer(p *rule.Proxy, addr string) {
 
+	saddr :=addr
+	auser:=""
+	apass:=""
+
+    if strings.Contains(addr,"@") {
+		server1 := strings.Split(addr, "@")
+		saddr = server1[1]
+
+		if strings.Contains(server1[0],":") {
+			auth1 := strings.Split(server1[0], ":")
+			auser=auth1[0]
+			apass=auth1[1]
+		} else {
+			auser=server1[0]
+			apass=""
+		}
+	}
+
 	// 定义HTTP处理函数
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		handler1(w, r, p)
+		handler1(w, r, p,auser,apass)
 	})
 	http.HandleFunc("/operation", func(w http.ResponseWriter, r *http.Request) {
-		handler2(w, r, p)
+		handler2(w, r, p,auser,apass)
 	})
 
 	// 启动HTTP服务器
-	fmt.Printf("Status Server is listening on %s...\n", addr)
+	fmt.Printf("Status Server is listening on %s...\n", saddr)
 	//log.F("Status Server is listening on %s...\n", addr)
-	if err := http.ListenAndServe(addr, nil); err != nil {
+	if err := http.ListenAndServe(saddr, nil); err != nil {
 		fmt.Printf("Error starting server: %s\n", err)
 	}
 }
 
 // 处理HTTP请求的函数
-
-func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
+func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass string) {
 	pstatus:=[]rule.ProxyStatus{}
 	index:=0
 	//fmt.Printf("API : %v",r.URL)
@@ -154,6 +172,21 @@ func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 	if err1!=nil {
 		prio=-1
 	}
+	
+	if user!="" {
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// 验证用户名和密码
+		if username !=user || password!=pass {
+			http.Error(w, "Unauthorized for "+username+":"+password, http.StatusUnauthorized)
+			return
+		}
+	}	
 	
 		// 设置响应头为JSON格式
 	w.Header().Set("Content-Type", "application/json")
@@ -174,7 +207,7 @@ func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 
 
 
-func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
+func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass string) {
 		//fmt.Printf("API : %v",r.URL)
 	query := r.URL.Query()
 	op := query.Get("op")  
@@ -189,10 +222,24 @@ func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy) {
 		prio=-1
 	}
 	
+	if user!="" {
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// 验证用户名和密码
+		if username !=user || password!=pass {
+			http.Error(w, "Unauthorized for "+username+":"+password, http.StatusUnauthorized)
+			return
+		}
+	}	
 
 	// 根据参数值进行不同的响应
 	if op == "" {
-		fmt.Fprintf(w, "no operation")
+		http.Error(w, "no operation", http.StatusTeapot)
 		return
 	}
 	switch op {

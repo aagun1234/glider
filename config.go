@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/nadoo/conflag"
 
@@ -37,6 +38,7 @@ type Config struct {
 	rules []*rule.Config
 
 	Services []string
+
 }
 
 func parseConfig() *Config {
