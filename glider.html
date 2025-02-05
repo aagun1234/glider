@@ -65,8 +65,8 @@
 	<h1>Glider Service Status Dashboard</h1>
 	<div class="config">
 		<label for="api-url">API Base URL:</label>
-		<input type="text" id="api-url" placeholder="Enter API base URL (e.g., http://192.168.99.60:8880)" value="http://192.168.99.60:8880">
-		<button onclick="updateApiUrl()">Update</button>
+		<input type="text" id="api-url" placeholder="Enter API base URL (e.g., http://192.168.99.60:8880)" value="">
+		<button onclick="updateClick()">Update</button>
 	</div>
 	<table id="services-table">
 		<thead>
@@ -92,20 +92,48 @@
 		let apiBaseUrl = document.getElementById('api-url').value; // 从输入框获取默认值
 
 		// 更新 API 地址的函数
-		function updateApiUrl() {
+		async function updateApiUrl() {
+			const queryString = window.location.search;
+			const urlParams = new URLSearchParams(queryString);
+			const backendValue = urlParams.get('backend');
 			const input = document.getElementById('api-url');
+			
+			if (backendValue) {
+				input.value = backendValue;
+			}
+			
 			const newUrl = input.value.trim();
 			if (newUrl) {
 				apiBaseUrl = newUrl;
+				if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+					apiBaseUrl = 'http://' + newUrl;
+				}
+				input.value = apiBaseUrl;
 				loadServices(); // 重新加载服务状态
 			} else {
 				alert('Please enter a valid API URL.');
 			}
 		}
+		// 更新 API 地址的函数
+		function updateClick() {
+			const input = document.getElementById('api-url');
+			const newUrl = input.value.trim();
+			if (newUrl) {
+				apiBaseUrl = newUrl;
+				if (!newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+					apiBaseUrl = 'http://' + newUrl;
+				}
+				loadServices(); // 重新加载服务状态
+			} else {
+				alert('Please enter a valid API URL.');
+			}
+			
+		}
 
 		// 获取所有服务状态的函数
 		async function fetchServices() {
 			try {
+				
 				const response = await fetch(`${apiBaseUrl}/status`);
 				if (!response.ok) {
 					throw new Error('Failed to fetch services');
@@ -195,19 +223,13 @@
 
 		// 加载服务状态的函数
 		async function loadServices() {
-			const queryString = window.location.search;
-			const input = document.getElementById('api-url');
-			const urlParams = new URLSearchParams(queryString);
-			const backendValue = urlParams.get('backend');
-			if (backendValue) {
-				input.value = backendValue;
-			}
+			//apiBaseUrl = document.getElementById('api-url').value
 			const services = await fetchServices();
 			renderServices(services);
 		}
 
 		// 页面加载时自动加载服务状态
-		window.onload = loadServices;
+		window.onload = updateApiUrl;
 	</script>
 </body>
 </html>
