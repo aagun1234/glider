@@ -17,6 +17,7 @@ Add a management interface:
 status=user:pass@127.0.0.1:8880
 
 \#or without basic auth
+
 \#status=127.0.0.1:8000
 ...
 
