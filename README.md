@@ -11,8 +11,11 @@ Fork from https://github.com/nadoo/glider
 Add a management interface:
 
 [glider.conf]
+
 ...
-status=127.0.0.1:8880
+
+status=user:pass@127.0.0.1:8880
+
 ...
 
 
