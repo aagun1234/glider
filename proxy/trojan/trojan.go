@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/proxy"
 )
 
 // Trojan is a base trojan struct.

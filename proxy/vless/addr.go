@@ -7,7 +7,7 @@ import (
 	"net/netip"
 	"strconv"
 
-	"github.com/nadoo/glider/pkg/pool"
+	"github.com/aagun1234/glider/pkg/pool"
 )
 
 // Atyp is vless addr type.

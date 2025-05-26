@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/nadoo/glider/pkg/pool"
+	"github.com/aagun1234/glider/pkg/pool"
 )
 
 // Stream implements net.Conn

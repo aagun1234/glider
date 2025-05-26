@@ -12,8 +12,8 @@ package socks5
 import (
 	"net/url"
 
-	"github.com/nadoo/glider/pkg/log"
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/pkg/log"
+	"github.com/aagun1234/glider/proxy"
 )
 
 // Version is socks5 version number.

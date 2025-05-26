@@ -12,11 +12,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/nadoo/glider/pkg/pool"
-	"github.com/nadoo/glider/proxy"
-	"github.com/nadoo/glider/proxy/ssr/internal/cipher"
-	"github.com/nadoo/glider/proxy/ssr/internal/obfs"
-	"github.com/nadoo/glider/proxy/ssr/internal/protocol"
+	"github.com/aagun1234/glider/pkg/pool"
+	"github.com/aagun1234/glider/proxy"
+	"github.com/aagun1234/glider/proxy/ssr/internal/cipher"
+	"github.com/aagun1234/glider/proxy/ssr/internal/obfs"
+	"github.com/aagun1234/glider/proxy/ssr/internal/protocol"
 )
 
 var bufSize = proxy.TCPBufSize

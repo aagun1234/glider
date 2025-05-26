@@ -13,8 +13,8 @@ import (
 	"time"
 	"math/rand"
 
-	"github.com/nadoo/glider/pkg/log"
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/pkg/log"
+	"github.com/aagun1234/glider/proxy"
 )
 
 // forwarder slice orderd by priority.

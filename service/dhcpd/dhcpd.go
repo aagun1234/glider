@@ -14,8 +14,8 @@ import (
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/insomniacslk/dhcp/dhcpv4/server4"
 
-	"github.com/nadoo/glider/pkg/log"
-	"github.com/nadoo/glider/service"
+	"github.com/aagun1234/glider/pkg/log"
+	"github.com/aagun1234/glider/service"
 )
 
 func init() {

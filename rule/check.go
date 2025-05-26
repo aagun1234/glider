@@ -13,7 +13,7 @@ import (
 	"time"
 	"math/rand"
 
-	"github.com/nadoo/glider/pkg/pool"
+	"github.com/aagun1234/glider/pkg/pool"
 )
 
 // Checker is a forwarder health checker.

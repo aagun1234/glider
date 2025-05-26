@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net/netip"
 
-	"github.com/nadoo/glider/rule"
+	"github.com/aagun1234/glider/rule"
 )
 
 // Manager struct

@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/nadoo/glider/pkg/log"
-	"github.com/nadoo/glider/pkg/smux"
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/pkg/log"
+	"github.com/aagun1234/glider/pkg/smux"
+	"github.com/aagun1234/glider/proxy"
 )
 
 // SmuxServer struct.

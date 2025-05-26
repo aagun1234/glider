@@ -6,9 +6,9 @@ import (
 	"io"
 	"net"
 
-	"github.com/nadoo/glider/pkg/log"
-	"github.com/nadoo/glider/pkg/pool"
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/pkg/log"
+	"github.com/aagun1234/glider/pkg/pool"
+	"github.com/aagun1234/glider/proxy"
 )
 
 // NewVLessDialer returns a vless proxy dialer.

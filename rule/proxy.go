@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"fmt"
 
-	"github.com/nadoo/glider/pkg/log"
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/pkg/log"
+	"github.com/aagun1234/glider/proxy"
 )
 
 // Proxy implements the proxy.Proxy interface with rule support.

@@ -3,7 +3,7 @@ package vsock
 import (
 	"net"
 
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/proxy"
 )
 
 func init() {

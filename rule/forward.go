@@ -9,8 +9,8 @@ import (
 	"time"
 	"math/rand"
 
-	"github.com/nadoo/glider/pkg/log"
-	"github.com/nadoo/glider/proxy"
+	"github.com/aagun1234/glider/pkg/log"
+	"github.com/aagun1234/glider/proxy"
 )
 
 // StatusHandler function will be called when the forwarder's status changed.

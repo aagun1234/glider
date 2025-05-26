@@ -1,7 +1,7 @@
 package obfs
 
 import (
-	"github.com/nadoo/glider/proxy/ssr/internal/ssr"
+	"github.com/aagun1234/glider/proxy/ssr/internal/ssr"
 )
 
 func init() {

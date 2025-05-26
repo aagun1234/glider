@@ -2,8 +2,8 @@
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/nadoo/glider?style=flat-square)](https://go.dev/dl/)
 [![Go Report Card](https://goreportcard.com/badge/github.com/nadoo/glider?style=flat-square)](https://goreportcard.com/report/github.com/nadoo/glider)
-[![GitHub release](https://img.shields.io/github/v/release/nadoo/glider.svg?style=flat-square&include_prereleases)](https://github.com/nadoo/glider/releases)
-[![Actions Status](https://img.shields.io/github/actions/workflow/status/nadoo/glider/build.yml?branch=dev&style=flat-square)](https://github.com/nadoo/glider/actions)
+[![GitHub release](https://img.shields.io/github/v/release/nadoo/glider.svg?style=flat-square&include_prereleases)](https://github.com/aagun1234/glider/releases)
+[![Actions Status](https://img.shields.io/github/actions/workflow/status/nadoo/glider/build.yml?branch=dev&style=flat-square)](https://github.com/aagun1234/glider/actions)
 [![DockerHub](https://img.shields.io/docker/image-size/nadoo/glider?color=blue&label=docker&style=flat-square)](https://hub.docker.com/r/nadoo/glider)
 
 Fork from https://github.com/nadoo/glider
@@ -119,7 +119,7 @@ we can set up local listeners as proxy servers, and forward requests to internet
 
 ## Install
 
-- Binary: [https://github.com/nadoo/glider/releases](https://github.com/nadoo/glider/releases)
+- Binary: [https://github.com/aagun1234/glider/releases](https://github.com/aagun1234/glider/releases)
 - Docker: `docker pull nadoo/glider`
 - Manjaro: `pamac install glider`
 - ArchLinux: `sudo pacman -S glider`
@@ -483,7 +483,7 @@ glider -config CONFIG_PATH
 
 ## Linux Daemon
 
-- systemd: [https://github.com/nadoo/glider/tree/main/systemd](https://github.com/nadoo/glider/tree/main/systemd)
+- systemd: [https://github.com/aagun1234/glider/tree/main/systemd](https://github.com/aagun1234/glider/tree/main/systemd)
 
 - <details> <summary>docker: click to see details</summary>
 
@@ -522,7 +522,7 @@ glider -config CONFIG_PATH
 
   ```bash
   open `feature.go` & `feature_linux.go`, comment out the packages you don't need
-  // _ "github.com/nadoo/glider/proxy/kcp"
+  // _ "github.com/aagun1234/glider/proxy/kcp"
   ```
 
 3. Build it:
