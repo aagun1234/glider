@@ -1,4 +1,4 @@
-module github.com/nadoo/glider
+module github.com/aagun1234/glider
 
 go 1.23
 
