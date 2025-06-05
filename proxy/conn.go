@@ -26,6 +26,7 @@ var (
 type Conn struct {
 	r *bufio.Reader
 	net.Conn
+	
 }
 
 // NewConn returns a new conn.
@@ -55,6 +56,10 @@ func (c *Conn) Close() error {
 // Relay relays between left and right.
 func Relay(left, right net.Conn) error {
 	var err, err1 error
+	var in_bytes		int64
+	var out_bytes	int64
+	var Inbytes		uint64
+	var Outbytes	uint64
 
 	var wg sync.WaitGroup
 	var wait = 5 * time.Second
@@ -62,11 +67,13 @@ func Relay(left, right net.Conn) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		_, err1 = Copy(right, left)
+		in_bytes, err1 = Copy(right, left)
+		Inbytes=Inbytes+uint64(in_bytes)
 		right.SetReadDeadline(time.Now().Add(wait)) // unblock read on right
 	}()
 
-	_, err = Copy(left, right)
+	out_bytes, err = Copy(left, right)
+	Outbytes=Outbytes+uint64(out_bytes)
 	left.SetReadDeadline(time.Now().Add(wait)) // unblock read on left
 	wg.Wait()
 
@@ -80,7 +87,40 @@ func Relay(left, right net.Conn) error {
 
 	return nil
 }
+// Relay relays between left and right.
+func Relay1(left, right net.Conn) (uint64,uint64,error) {
+	var err, err1 error
+	var in_bytes		int64
+	var out_bytes	int64
+	var Inbytes		uint64
+	var Outbytes	uint64
 
+	var wg sync.WaitGroup
+	var wait = 5 * time.Second
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		in_bytes, err1 = Copy(right, left)
+		Inbytes=Inbytes+uint64(in_bytes)
+		right.SetReadDeadline(time.Now().Add(wait)) // unblock read on right
+	}()
+
+	out_bytes, err = Copy(left, right)
+	Outbytes=Outbytes+uint64(out_bytes)
+	left.SetReadDeadline(time.Now().Add(wait)) // unblock read on left
+	wg.Wait()
+
+	if err1 != nil && !errors.Is(err1, os.ErrDeadlineExceeded) {
+		return Inbytes,Outbytes,err1
+	}
+
+	if err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
+		return Inbytes,Outbytes,err
+	}
+
+	return Inbytes,Outbytes,nil
+}
 // Copy copies from src to dst.
 func Copy(dst io.Writer, src io.Reader) (written int64, err error) {
 	dst = underlyingWriter(dst)

@@ -55,6 +55,8 @@ func (s *Socks5) ListenAndServeTCP() {
 // Serve serves a connection.
 func (s *Socks5) Serve(c net.Conn) {
 	defer c.Close()
+	var inbytes uint64
+	var outbytes uint64
 
 	if c, ok := c.(*net.TCPConn); ok {
 		c.SetKeepAlive(true)
@@ -90,12 +92,15 @@ func (s *Socks5) Serve(c net.Conn) {
 
 	log.F("[socks5] %s <-> %s via %s", c.RemoteAddr(), tgt, dialer.Addr())
 
-	if err = proxy.Relay(c, rc); err != nil {
+//	if err = proxy.Relay(c, rc); err != nil {
+	if inbytes,outbytes,err = proxy.Relay1(c, rc); err != nil {
 		log.F("[socks5] %s <-> %s via %s, relay error: %v", c.RemoteAddr(), tgt, dialer.Addr(), err)
 		// record remote conn failure only
 		if !strings.Contains(err.Error(), s.addr) {
 			s.proxy.Record(dialer, false)
 		}
+	} else {
+		s.proxy.UpdateInOut(dialer, inbytes, outbytes)
 	}
 }
 

@@ -31,8 +31,8 @@ type Forwarder struct {
 	chkcount	uint32
 	checknow	uint32
 	latency     int64
-	inbytes		uint64
-	outbytes	uint64
+	Inbytes		uint64
+	Outbytes	uint64
 	intface     string // local interface or ip address
 	handlers    []StatusHandler
 }
@@ -195,19 +195,19 @@ func (f *Forwarder) IncFailures() {
 
 // add bytes
 func (f *Forwarder) AddInBytes(v uint64) {
-	atomic.AddUint64(&f.inbytes, v)
+	atomic.AddUint64(&f.Inbytes, v)
 }
 
 func (f *Forwarder) AddOutBytes(v uint64) {
-	atomic.AddUint64(&f.outbytes, v)
+	atomic.AddUint64(&f.Outbytes, v)
 }
 // get bytes
 func (f *Forwarder) InBytes() uint64{
-	return atomic.LoadUint64(&f.inbytes)
+	return atomic.LoadUint64(&f.Inbytes)
 }
 
 func (f *Forwarder) OutBytes() uint64{
-	return atomic.LoadUint64(&f.outbytes)
+	return atomic.LoadUint64(&f.Outbytes)
 
 }
 

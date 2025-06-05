@@ -77,6 +77,7 @@
 				<th>Priority</th>
 				<th>Total<br>Checks</th>
 				<th>Total<br>Failures</th>
+				<th>Up/Down Bytes</th>
 				<th>Online</th>
 				<th>Manually<br>Disabled</th>
 				<th>Latency (ms)</th>
@@ -89,6 +90,27 @@
 	</table>
 
 	<script>
+		// 获取当前页面的完整 URL
+		const currentPageUrl = window.location.href;
+
+		// 使用正则表达式提取 "http://网址" 部分
+		const apiUrlPattern = /^(https?:\/\/[^\:/?#]+)/;
+		const match = currentPageUrl.match(apiUrlPattern);
+
+        if (match) {
+			// 提取到的 "http://网址" 部分
+			const defaultApiUrl = match[0];
+
+			// 获取输入框元素
+			const apiUrlInput = document.getElementById('api-url');
+
+			// 将提取到的 URL 设置为输入框的默认值
+			apiUrlInput.value = defaultApiUrl+':8880';
+		} else {
+			console.log("No valid URL found in the current page URL.");
+		}
+
+
 		let apiBaseUrl = document.getElementById('api-url').value; // 从输入框获取默认值
 
 		// 更新 API 地址的函数
@@ -183,7 +205,15 @@
 				console.error('Error Check service:', error);
 			}
 		}
-
+		function formatBytes(bytes) {
+			if (bytes < 1024) {
+				return `${bytes}B`;
+			} else if (bytes < 1024 * 1024) {
+				return `${(bytes / 1024).toFixed(2)}K`;
+			} else {
+				return `${(bytes / (1024 * 1024)).toFixed(2)}M`;
+			}
+		}
 		// 渲染服务状态的函数
 		function renderServices(services) {
 			const tbody = document.querySelector('#services-table tbody');
@@ -191,6 +221,8 @@
 
 			services.forEach(service => {
 				const row = document.createElement('tr');
+				const formattedInBytes = formatBytes(service.inbytes);
+				const formattedOutBytes = formatBytes(service.outbytes);
 
 				// 填充服务信息
 				row.innerHTML = `
@@ -200,6 +232,7 @@
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.priority}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.chkcount}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.failures}</td>
+					<td >${formattedInBytes} / ${formattedOutBytes}</td>
 					<td class="${service.enabled ? 'status-enabled' : 'status-disabled'}">
 						${service.enabled ? 'Yes' : 'No'}
 					</td>

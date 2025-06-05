@@ -136,6 +136,15 @@ func (p *Proxy) Record(dialer proxy.Dialer, success bool) {
 	}
 }
 
+// Record records result while using the dialer from proxy.
+func (p *Proxy) UpdateInOut(dialer proxy.Dialer, inbytes,outbytes uint64) {
+	if fwdr, ok := dialer.(*Forwarder); ok {
+		fwdr.AddInBytes(inbytes)
+		fwdr.AddOutBytes(outbytes)
+	}
+}
+
+
 // AddDomainIP used to update ipMap rules according to domainMap rule.
 func (p *Proxy) AddDomainIP(domain string, ip netip.Addr) error {
 	domain = strings.ToLower(domain)
@@ -228,6 +237,8 @@ func (p *Proxy) GetMainStatus(index uint32, url,enabled string,prio int) []Proxy
 				MDisabled:    p.main.fwdrs[i].MDisabled(),
 				TotalFails:    p.main.fwdrs[i].TotalFails(),
 				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
+				InBytes:	p.main.fwdrs[i].InBytes(),
+				OutBytes:	p.main.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
 			}
 			if (index==0 || index==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.fwdrs[i].Priority()) {
@@ -252,6 +263,8 @@ func (p *Proxy) GetMainStatus(index uint32, url,enabled string,prio int) []Proxy
 				TotalFails:    fg.fwdrs[i].TotalFails(),
 				ChkCount:	fg.fwdrs[i].ChkCount(),
 				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
+				InBytes:	fg.fwdrs[i].InBytes(),
+				OutBytes:	fg.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
 				
 			}
@@ -294,6 +307,8 @@ func (p *Proxy) GetAvailStatus(index uint32,url,enabled string,prio int) []Proxy
 				MDisabled:    p.main.avail[i].MDisabled(),
 				TotalFails:    p.main.avail[i].TotalFails(),
 				Latency:     p.main.avail[i].Latency()/int64(time.Millisecond),
+				InBytes:	p.main.avail[i].InBytes(),
+				OutBytes:	p.main.avail[i].OutBytes(),
 				Maps:	mapstr,
 			}
 			if (index==0 || index==p.main.avail[i].FID()) && (url =="" || strings.Contains(p.main.avail[i].URL(), url)) && (enabled =="" || bb==p.main.avail[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.avail[i].Priority()) {
@@ -318,6 +333,8 @@ func (p *Proxy) GetAvailStatus(index uint32,url,enabled string,prio int) []Proxy
 				TotalFails:    fg.avail[i].TotalFails(),
 				ChkCount:	fg.avail[i].ChkCount(),
 				Latency:     fg.avail[i].Latency()/int64(time.Millisecond),
+				InBytes:	fg.fwdrs[i].InBytes(),
+				OutBytes:	fg.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
 			}
 			if (index==0 || index==fg.avail[i].FID()) && (url =="" || strings.Contains(fg.avail[i].URL(), url)) && (enabled =="" || bb==fg.avail[i].Enabled()) && (prio==-1 || uint32(prio)==fg.avail[i].Priority()) {
@@ -358,6 +375,8 @@ func (p *Proxy) OperateMain(id uint32, url, enabled string, prio int, op ,stat s
 				MDisabled:    p.main.fwdrs[i].MDisabled(),
 				TotalFails:    p.main.fwdrs[i].TotalFails(),
 				Latency:     p.main.fwdrs[i].Latency()/int64(time.Millisecond),
+				InBytes:	p.main.avail[i].InBytes(),
+				OutBytes:	p.main.avail[i].OutBytes(),
 				Maps:	mapstr,
 		}
 		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.fwdrs[i].Priority()) {
@@ -399,6 +418,8 @@ func (p *Proxy) OperateMain(id uint32, url, enabled string, prio int, op ,stat s
 				MDisabled:    fg.fwdrs[i].MDisabled(),
 				TotalFails:    fg.fwdrs[i].TotalFails(),
 				Latency:     fg.fwdrs[i].Latency()/int64(time.Millisecond),
+				InBytes:	fg.fwdrs[i].InBytes(),
+				OutBytes:	fg.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
 			}
 			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==fg.fwdrs[i].Priority()) {

@@ -18,6 +18,9 @@ type Proxy interface {
 
 	// Record records result while using the dialer from proxy.
 	Record(dialer Dialer, success bool)
+	
+	// Update In/Out Bytes while using the dialer from proxy.
+	UpdateInOut(dialer Dialer, inbytes uint64, outbytes uint64)
 }
 
 var (

@@ -73,6 +73,7 @@ func main() {
 
 	// enable checkers
 	pxy.Check()
+	//start status api server
 	if config.StatusServer!="" {
 		go startServer(pxy,config.StatusServer)
 	}

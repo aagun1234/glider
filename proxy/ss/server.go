@@ -74,12 +74,17 @@ func (s *SS) Serve(c net.Conn) {
 
 	log.F("[ss] %s <-> %s via %s", c.RemoteAddr(), tgt, dialer.Addr())
 
-	if err = proxy.Relay(sc, rc); err != nil {
+	var inbytes uint64
+	var outbytes uint64
+
+	if inbytes,outbytes,err = proxy.Relay1(sc, rc); err != nil {
 		log.F("[ss] %s <-> %s via %s, relay error: %v", c.RemoteAddr(), tgt, dialer.Addr(), err)
 		// record remote conn failure only
 		if !strings.Contains(err.Error(), s.addr) {
 			s.proxy.Record(dialer, false)
 		}
+	} else {
+		s.proxy.UpdateInOut(dialer, inbytes, outbytes)
 	}
 }
 

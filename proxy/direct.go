@@ -16,6 +16,8 @@ type Direct struct {
 	ip           net.IP
 	dialTimeout  time.Duration
 	relayTimeout time.Duration
+	InBytes uint64
+	OutBytes uint64
 }
 
 func init() {
