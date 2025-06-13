@@ -44,6 +44,10 @@ http://127.0.0.1:8880/status?available=1    #show all available forwards
 
 http://127.0.0.1:8880/operation?url=127.0.0.1:&op=enable    #enable all forwards like "*127.0.0.1:*"
 
+use glider.html to show status page
+![image](https://github.com/user-attachments/assets/98225437-454d-424c-b81b-57bec2d12617)
+
+
 
 glider is a forward proxy with multiple protocols support, and also a dns/dhcp server with ipset management features(like dnsmasq).
 
