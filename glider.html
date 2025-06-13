@@ -28,6 +28,26 @@
 			border-radius: 3px;
 			cursor: pointer;
 		}
+		.priority-100 {
+			opacity: 1; /* 完全不透明 */
+			/* 或者使用颜色 */
+			/* color: #000000; */
+		}
+		.priority-90 {
+			opacity: 0.85; /* 部分透明 */
+			/* 或者使用颜色 */
+			/* color: #555555; */
+		}
+		.priority-80 {
+			opacity: 0.7; /* 更透明 */
+			/* 或者使用颜色 */
+			/* color: #888888; */
+		}
+		.priority-70 {
+			opacity: 0.5; /* 更透明 */
+			/* 或者使用颜色 */
+			/* color: #888888; */
+		}
 		table {
 			width: 100%;
 			border-collapse: collapse;
@@ -223,6 +243,17 @@
 				const row = document.createElement('tr');
 				const formattedInBytes = formatBytes(service.inbytes);
 				const formattedOutBytes = formatBytes(service.outbytes);
+				let priorityClass = '';
+				if (service.priority ==100) {
+					priorityClass = 'priority-100';
+				} else if (service.priority >90 ) {
+					priorityClass = 'priority-90'; // 高优先级，亮度最高（完全不透明）
+				} else if (service.priority >80 ) {
+					priorityClass = 'priority-80'; // 中等优先级
+				} else {
+					priorityClass = 'priority-70'; // 低优先级，亮度最低（更透明或更浅色）
+				}
+				row.classList.add(priorityClass);
 
 				// 填充服务信息
 				row.innerHTML = `

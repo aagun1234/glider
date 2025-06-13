@@ -260,9 +260,9 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 			continue
 		}
 		
-		//if fwdr.MDisabled() {
-		//	continue
-		//}
+		if fwdr.MDisabled() {
+			continue
+		}
 
 		elapsed, err := checker.Check(fwdr)
 		fwdr.IncChkCount()
@@ -286,10 +286,15 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 		}
 
 		wait = 2
+		if fwdr.Priority() < p.Priority() {
+			wait = 6
+		}
 		p.setLatency(fwdr, elapsed)
 		log.F("[check] %s: %s(%d), SUCCESS. Elapsed: %dms, Latency: %dms.",
 			p.name, fwdr.Addr(), fwdr.Priority(), elapsed.Milliseconds(), time.Duration(fwdr.Latency()).Milliseconds())
-		fwdr.Enable()
+		if !fwdr.MDisabled() {
+			fwdr.Enable()
+		}
 	}
 }
 
