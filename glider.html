@@ -209,9 +209,9 @@
 			if (bytes < 1024) {
 				return `${bytes}B`;
 			} else if (bytes < 1024 * 1024) {
-				return `${(bytes / 1024).toFixed(2)}K`;
+				return `${(bytes / 1024).toFixed(1)}K`;
 			} else {
-				return `${(bytes / (1024 * 1024)).toFixed(2)}M`;
+				return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
 			}
 		}
 		// 渲染服务状态的函数

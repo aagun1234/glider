@@ -33,6 +33,7 @@ type Strategy struct {
 	CheckTolerance      int
 	CheckLatencySamples int
 	CheckDisabledOnly   bool
+	CheckLowerPriority  bool
 	MaxFailures         int
 	DialTimeout         int
 	RelayTimeout        int
@@ -52,6 +53,7 @@ func NewConfFromFile(ruleFile string) (*Config, error) {
 	f.IntVar(&p.Strategy.CheckLatencySamples, "checklatencysamples", 10, "use the average latency of the latest N checks")
 	f.IntVar(&p.Strategy.CheckTolerance, "checktolerance", 0, "fowarder check tolerance(ms), switch only when new_latency < old_latency - tolerance, only used in lha mode")
 	f.BoolVar(&p.Strategy.CheckDisabledOnly, "checkdisabledonly", false, "check disabled fowarders only")
+	f.BoolVar(&p.Strategy.CheckLowerPriority, "checklowerpriority", true, "check lower priority fowarders")
 	f.IntVar(&p.Strategy.MaxFailures, "maxfailures", 3, "max failures to change forwarder status to disabled")
 	f.IntVar(&p.Strategy.DialTimeout, "dialtimeout", 3, "dial timeout(seconds)")
 	f.IntVar(&p.Strategy.RelayTimeout, "relaytimeout", 0, "relay timeout(seconds)")

@@ -252,7 +252,7 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 		}
 
 		// check all forwarders at least one time
-		if wait > 0 && (fwdr.Priority() < p.Priority()) {
+		if wait > 0 && (fwdr.Priority() < p.Priority()) && !(p.config.CheckLowerPriority) {
 			continue
 		}
 
