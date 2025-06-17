@@ -30,6 +30,7 @@ type Strategy struct {
 	Check               string
 	CheckInterval       int
 	CheckTimeout        int
+	PriorityStep		int
 	CheckTolerance      int
 	CheckLatencySamples int
 	CheckDisabledOnly   bool
@@ -48,6 +49,7 @@ func NewConfFromFile(ruleFile string) (*Config, error) {
 	f.StringSliceUniqVar(&p.Forward, "forward", nil, "forward url, format: SCHEME://[USER|METHOD:PASSWORD@][HOST]:PORT?PARAMS[,SCHEME://[USER|METHOD:PASSWORD@][HOST]:PORT?PARAMS]")
 	f.StringVar(&p.Strategy.Strategy, "strategy", "rr", "forward strategy, default: rr")
 	f.StringVar(&p.Strategy.Check, "check", "http://www.msftconnecttest.com/connecttest.txt#expect=200", "check=tcp[://HOST:PORT]: tcp port connect check\ncheck=http://HOST[:PORT][/URI][#expect=STRING_IN_RESP_LINE]\ncheck=file://SCRIPT_PATH: run a check script, healthy when exitcode=0, environment variables: FORWARDER_ADDR\ncheck=disable: disable health check")
+	f.IntVar(&p.Strategy.PriorityStep, "prioritystep", 10, "PRR step")
 	f.IntVar(&p.Strategy.CheckInterval, "checkinterval", 30, "fowarder check interval(seconds)")
 	f.IntVar(&p.Strategy.CheckTimeout, "checktimeout", 10, "fowarder check timeout(seconds)")
 	f.IntVar(&p.Strategy.CheckLatencySamples, "checklatencysamples", 10, "use the average latency of the latest N checks")

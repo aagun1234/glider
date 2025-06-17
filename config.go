@@ -57,6 +57,8 @@ func parseConfig() *Config {
 
 	flag.StringSliceVar(&conf.Forwards, "forward", nil, "forward url, see the URL section below")
 	flag.StringVar(&conf.Strategy.Strategy, "strategy", "rr", `rr: Round Robin mode
+prr: Priority based Round Robin mode
+lrr: Latency based Round Robin mode
 ha: High Availability mode
 lha: Latency based High Availability mode
 dh: Destination Hashing mode`)
@@ -67,6 +69,7 @@ check=https://HOST[:PORT][/URI][#expect=REGEX_MATCH_IN_RESP_LINE]
 check=file://SCRIPT_PATH: run a check script, healthy when exitcode=0, env vars: FORWARDER_ADDR,FORWARDER_URL
 check=disable: disable health check`)
 	flag.IntVar(&conf.Strategy.CheckInterval, "checkinterval", 30, "fowarder check interval(seconds)")
+	flag.IntVar(&conf.Strategy.PriorityStep, "prioritystep", 10, "PRR step")
 	flag.IntVar(&conf.Strategy.CheckTimeout, "checktimeout", 10, "fowarder check timeout(seconds)")
 	flag.IntVar(&conf.Strategy.CheckTolerance, "checktolerance", 0, "fowarder check tolerance(ms), switch only when new_latency < old_latency - tolerance, only used in lha mode")
 	flag.IntVar(&conf.Strategy.CheckLatencySamples, "checklatencysamples", 10, "use the average latency of the latest N checks")

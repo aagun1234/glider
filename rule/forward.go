@@ -37,12 +37,18 @@ type Forwarder struct {
 	handlers    []StatusHandler
 }
 
+func generateUnique32Bit() uint32 {
+	rand.Seed(time.Now().UnixNano())
+	timestamp := uint32(time.Now().UnixNano() / 1000000) // 毫秒级时间戳
+	randomPart := uint32(rand.Intn(999))                  // 随机部分
+	uniqueValue := (timestamp % (1<<31)) + randomPart     // 确保结果在32位范围内
+	return uniqueValue % (1 << 31)
+}
 // ForwarderFromURL parses `forward=` command value and returns a new forwarder.
 func ForwarderFromURL(s, intface string, dialTimeout, relayTimeout time.Duration) (f *Forwarder, err error) {
 	f = &Forwarder{url: s}
 	
-	rand.Seed(time.Now().UnixNano())
-	f.fid=rand.Uint32()
+	f.fid=generateUnique32Bit()
 
 	ss := strings.Split(s, "#")
 	if len(ss) > 1 {
@@ -308,6 +314,11 @@ func (f *Forwarder) SetMaxFailures(l uint32) {
 // Latency returns the latency of forwarder.
 func (f *Forwarder) Latency() int64 {
 	return atomic.LoadInt64(&f.latency)
+}
+
+// Latency returns the latency of forwarder.
+func (f *Forwarder) Latency_ms() int64 {
+	return atomic.LoadInt64(&f.latency)/int64(time.Millisecond)
 }
 
 // SetLatency sets the latency of forwarder.

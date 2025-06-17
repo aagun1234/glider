@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Glider Service Status Dashboard</title>
+	<title>Glider 状态页</title>
 	<style>
 		body {
 			font-family: Arial, sans-serif;
@@ -82,10 +82,10 @@
 	</style>
 </head>
 <body>
-	<h1>Glider Service Status Dashboard</h1>
+	<h1>Glider 状态页</h1>
 	<div class="config">
 		<label for="api-url">API Base URL:</label>
-		<input type="text" id="api-url" placeholder="Enter API base URL (e.g., http://192.168.99.60:8880)" value="">
+		<input type="text" id="api-url" placeholder="API URL (e.g., http://192.168.99.60:8880)" value="">
 		<button onclick="updateClick()">Update</button>
 	</div>
 	<table id="services-table">
@@ -93,14 +93,14 @@
 			<tr>
 				<th style="text-align: center;">ID</th>
 				<th style="text-align: center;">URL</th>
-				<th style="text-align: center;">Routes</th>
-				<th style="text-align: center;">Group<br>(Strategy)</th>
-				<th style="text-align: center;">Total<br> Checks/Fails</th>
-				<th style="text-align: center;">Up/Down<br> Bytes</th>
-				<th style="text-align: center;">Online</th>
-				<th style="text-align: center;">Manually<br>Disabled</th>
-				<th style="text-align: center;">Latency<br>(ms)</th>
-				<th style="text-align: center;">Actions</th>
+				<th style="text-align: center;">路由</th>
+				<th style="text-align: center;">组名<br>(负载均衡)</th>
+				<th style="text-align: center;">检测/失败<br>次数</th>
+				<th style="text-align: center;">上/下行<br>字节数</th>
+				<th style="text-align: center;">在线<br>状态</th>
+				<th style="text-align: center;">禁用<br>状态</th>
+				<th style="text-align: center;">延迟<br>(ms)</th>
+				<th style="text-align: center;">操作</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -263,18 +263,18 @@
 					<td style="text-align: center;" class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.chkcount}/${service.failures}</td>
 					<td style="text-align: center;" class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${formattedInBytes} / ${formattedOutBytes}</td>
 					<td style="text-align: center;" class="${service.enabled ? 'status-enabled' : 'status-disabled'}">
-						${service.enabled ? 'Yes' : 'No'}
+						${service.enabled ? '在线' : '下线'}
 					</td>
-					<td style="text-align: center;" >${service.manualy_disabled ? 'Yes' : 'No'}</td>
+					<td style="text-align: center;" >${service.manualy_disabled ? '已禁用' : '已启用'}</td>
 					<td style="text-align: center;" class="${service.enabled ? 'status-enabled' : 'status-disabled'}">${service.latency}</td>
 					<td style="text-align: center;">
 						<button class="${service.enabled ? 'disable' : 'enable'}" 
 								onclick="toggleService(${service.id}, ${!service.enabled})">
-							${service.enabled ? 'Disable' : 'Enable'}
+							${service.enabled ? '禁用' : '启用'}
 						</button>
 						&nbsp;
 						<button onclick="checkService(${service.id})" style="background-color: #A8E6A8;">
-							CheckNow
+							立即检查
 						</button>
 					</td>
 				`;

@@ -180,6 +180,8 @@ type ProxyStatus struct {
 	InBytes		uint64 `json:"inbytes"`
 	OutBytes		uint64 `json:"outbytes"`
 	Maps	string `json:"routemap"`
+	GroupName    string `json:"groupname"`
+	GroupStrategy    string `json:"groupstrategy"`
 }
 
 func syncMapToString(m *sync.Map, target interface{}) []interface{} {
@@ -240,6 +242,8 @@ func (p *Proxy) GetMainStatus(index uint32, url,enabled string,prio int) []Proxy
 				InBytes:	p.main.fwdrs[i].InBytes(),
 				OutBytes:	p.main.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
+				GroupName:	p.main.name,
+				GroupStrategy:	p.main.config.Strategy,
 			}
 			if (index==0 || index==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.fwdrs[i].Priority()) {
 				if _, ok := aa[p.main.fwdrs[i].FID()]; !ok {
@@ -266,7 +270,8 @@ func (p *Proxy) GetMainStatus(index uint32, url,enabled string,prio int) []Proxy
 				InBytes:	fg.fwdrs[i].InBytes(),
 				OutBytes:	fg.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
-				
+				GroupName:	fg.name,
+				GroupStrategy:	fg.config.Strategy,				
 			}
 			if (index==0 || index==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==fg.fwdrs[i].Priority()) {
 				if _, ok := aa[fg.fwdrs[i].FID()]; !ok {
@@ -310,6 +315,8 @@ func (p *Proxy) GetAvailStatus(index uint32,url,enabled string,prio int) []Proxy
 				InBytes:	p.main.avail[i].InBytes(),
 				OutBytes:	p.main.avail[i].OutBytes(),
 				Maps:	mapstr,
+				GroupName:	p.main.name,
+				GroupStrategy:	p.main.config.Strategy,
 			}
 			if (index==0 || index==p.main.avail[i].FID()) && (url =="" || strings.Contains(p.main.avail[i].URL(), url)) && (enabled =="" || bb==p.main.avail[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.avail[i].Priority()) {
 				if _, ok := aa[p.main.avail[i].FID()]; !ok {
@@ -336,6 +343,8 @@ func (p *Proxy) GetAvailStatus(index uint32,url,enabled string,prio int) []Proxy
 				InBytes:	fg.avail[i].InBytes(),
 				OutBytes:	fg.avail[i].OutBytes(),
 				Maps:	mapstr,
+				GroupName:	fg.name,
+				GroupStrategy:	fg.config.Strategy,
 			}
 			if (index==0 || index==fg.avail[i].FID()) && (url =="" || strings.Contains(fg.avail[i].URL(), url)) && (enabled =="" || bb==fg.avail[i].Enabled()) && (prio==-1 || uint32(prio)==fg.avail[i].Priority()) {
 				if _, ok := aa[fg.avail[i].FID()]; !ok {
@@ -378,6 +387,8 @@ func (p *Proxy) OperateMain(id uint32, url, enabled string, prio int, op ,stat s
 				InBytes:	p.main.fwdrs[i].InBytes(),
 				OutBytes:	p.main.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
+				GroupName:	p.main.name,
+				GroupStrategy:	p.main.config.Strategy,
 		}
 		if (id==0 || id==p.main.fwdrs[i].FID()) && (url =="" || strings.Contains(p.main.fwdrs[i].URL(), url)) && (enabled =="" || bb==p.main.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==p.main.fwdrs[i].Priority()) {
 			switch op {
@@ -421,6 +432,8 @@ func (p *Proxy) OperateMain(id uint32, url, enabled string, prio int, op ,stat s
 				InBytes:	fg.fwdrs[i].InBytes(),
 				OutBytes:	fg.fwdrs[i].OutBytes(),
 				Maps:	mapstr,
+				GroupName:	fg.name,
+				GroupStrategy:	fg.config.Strategy,
 			}
 			if (id==0 || id==fg.fwdrs[i].FID()) && (url =="" || strings.Contains(fg.fwdrs[i].URL(), url)) && (enabled =="" || bb==fg.fwdrs[i].Enabled()) && (prio==-1 || uint32(prio)==fg.fwdrs[i].Priority()) {
 				switch op {
