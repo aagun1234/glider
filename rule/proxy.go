@@ -20,12 +20,14 @@ type Proxy struct {
 	domainMap sync.Map
 	ipMap     sync.Map
 	cidrMap   sync.Map
+	ratelimit int64
 }
 
 // NewProxy returns a new rule proxy.
 func NewProxy(mainForwarders []string, mainStrategy *Strategy, rules []*Config) *Proxy {
 	rd := &Proxy{main: NewFwdrGroup("main", mainForwarders, mainStrategy)}
-
+	rd.SetRateLimit(0)
+	
 	for _, r := range rules {
 		group := NewFwdrGroup(r.RulePath, r.Forward, &r.Strategy)
 		rd.all = append(rd.all, group)
@@ -142,6 +144,16 @@ func (p *Proxy) UpdateInOut(dialer proxy.Dialer, inbytes,outbytes uint64) {
 		fwdr.AddInBytes(inbytes)
 		fwdr.AddOutBytes(outbytes)
 	}
+}
+
+// Record records result while using the dialer from proxy.
+func (p *Proxy) SetRateLimit(rate int64) {
+	p.ratelimit=rate
+}
+
+// Record records result while using the dialer from proxy.
+func (p *Proxy) GetRateLimit() (int64){
+	return(p.ratelimit)
 }
 
 

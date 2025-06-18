@@ -22,6 +22,7 @@ type Config struct {
 	LogFlags   int
 	TCPBufSize int
 	UDPBufSize int
+	RateLimit int64
 
 	Listens []string
 	StatusServer string
@@ -51,6 +52,7 @@ func parseConfig() *Config {
 
 	flag.BoolVar(&conf.Verbose, "verbose", false, "verbose mode")
 	flag.IntVar(&conf.LogFlags, "logflags", 19, "do not change it if you do not know what it is, ref: https://pkg.go.dev/log#pkg-constants")
+	flag.Int64Var(&conf.RateLimit, "ratelimit", 0, "ratelimit in Bytes/s, zero for no limit")
 	flag.IntVar(&conf.TCPBufSize, "tcpbufsize", 32768, "tcp buffer size in Bytes")
 	flag.IntVar(&conf.UDPBufSize, "udpbufsize", 2048, "udp buffer size in Bytes")
 	flag.StringSliceUniqVar(&conf.Listens, "listen", nil, "listen url, see the URL section below")

@@ -90,10 +90,10 @@ func (s *Socks5) Serve(c net.Conn) {
 	}
 	defer rc.Close()
 
-	log.F("[socks5] %s <-> %s via %s", c.RemoteAddr(), tgt, dialer.Addr())
+	log.F("[socks5] %s <-> %s via %s, GetRateLimit: %d", c.RemoteAddr(), tgt, dialer.Addr(),s.proxy.GetRateLimit())
 
 //	if err = proxy.Relay(c, rc); err != nil {
-	if inbytes,outbytes,err = proxy.Relay1(c, rc); err != nil {
+	if inbytes,outbytes,err = proxy.Relay1(c, rc, s.proxy.GetRateLimit()); err != nil {
 		log.F("[socks5] %s <-> %s via %s, relay error: %v", c.RemoteAddr(), tgt, dialer.Addr(), err)
 		// record remote conn failure only
 		if !strings.Contains(err.Error(), s.addr) {
@@ -156,7 +156,7 @@ func (s *Socks5) serveSession(session *Session) {
 	defer dstPC.Close()
 
 	go func() {
-		proxy.CopyUDP(session.srcPC, nil, dstPC, 2*time.Minute, 5*time.Second)
+		proxy.CopyUDP1(session.srcPC, nil, dstPC, 2*time.Minute, 5*time.Second, s.proxy.GetRateLimit())
 		nm.Delete(session.key)
 		close(session.finCh)
 	}()

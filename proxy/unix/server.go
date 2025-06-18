@@ -87,7 +87,7 @@ func (s *Unix) Serve(c net.Conn) {
 	var inbytes uint64
 	var outbytes uint64
 
-	if inbytes,outbytes,err = proxy.Relay1(c, rc); err != nil {
+	if inbytes,outbytes,err = proxy.Relay1(c, rc, s.proxy.GetRateLimit()); err != nil {
 		log.F("[unix] %s <-> %s, relay error: %v", c.RemoteAddr(), dialer.Addr(), err)
 		// record remote conn failure only
 		if !strings.Contains(err.Error(), s.addr) {
@@ -154,7 +154,7 @@ func (s *Unix) serveSession(session *Session) {
 	defer dstPC.Close()
 
 	go func() {
-		proxy.CopyUDP(session.srcPC, session.src, dstPC, 2*time.Minute, 5*time.Second)
+		proxy.CopyUDP1(session.srcPC, session.src, dstPC, 2*time.Minute, 5*time.Second, s.proxy.GetRateLimit())
 		nm.Delete(session.key)
 		close(session.finCh)
 	}()

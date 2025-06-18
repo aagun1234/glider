@@ -127,7 +127,7 @@ func (s *WS) Serve(cc net.Conn) {
 	var inbytes uint64
 	var outbytes uint64
 
-	if inbytes,outbytes,err = proxy.Relay1(c, rc); err != nil {
+	if inbytes,outbytes,err = proxy.Relay1(c, rc, s.proxy.GetRateLimit() ); err != nil {
 		log.F("[ws] %s <-> %s, relay error: %v", c.RemoteAddr(), dialer.Addr(), err)
 		// record remote conn failure only
 		if !strings.Contains(err.Error(), s.addr) {

@@ -132,7 +132,7 @@ func (s *Trojan) Serve(c net.Conn) {
 	var inbytes uint64
 	var outbytes uint64
 
-	if inbytes,outbytes,err = proxy.Relay1(c, rc); err != nil {
+	if inbytes,outbytes,err = proxy.Relay1(c, rc, s.proxy.GetRateLimit()); err != nil {
 		log.F("[trojan] %s <-> %s via %s, relay error: %v", c.RemoteAddr(), target, dialer.Addr(), err)
 		// record remote conn failure only
 		if !strings.Contains(err.Error(), s.addr) {
@@ -161,9 +161,17 @@ func (s *Trojan) serveFallback(c net.Conn, tgt string, headBuf *bytes.Buffer) {
 
 	log.F("[trojan-fallback] %s <-> %s via %s", c.RemoteAddr(), tgt, dialer.Addr())
 
-	if err = proxy.Relay(c, rc); err != nil {
+	//if err = proxy.Relay(c, rc); err != nil {
+	//	log.F("[trojan-fallback] %s <-> %s via %s, relay error: %v", c.RemoteAddr(), tgt, dialer.Addr(), err)
+	//}
+	var inbytes uint64
+	var outbytes uint64
+	if inbytes,outbytes,err = proxy.Relay1(c, rc, s.proxy.GetRateLimit()); err != nil {
 		log.F("[trojan-fallback] %s <-> %s via %s, relay error: %v", c.RemoteAddr(), tgt, dialer.Addr(), err)
+	} else {
+		s.proxy.UpdateInOut(dialer, inbytes, outbytes)
 	}
+
 }
 
 func (s *Trojan) readHeader(r io.Reader) (byte, socks.Addr, error) {
@@ -209,6 +217,6 @@ func (s *Trojan) ServeUoT(c net.Conn, tgt socks.Addr) {
 	pc := NewPktConn(c, tgt)
 	log.F("[trojan] %s <-UoT-> %s <-> %s", c.RemoteAddr(), lc.LocalAddr(), tgt)
 
-	go proxy.CopyUDP(lc, nil, pc, 2*time.Minute, 5*time.Second)
-	proxy.CopyUDP(pc, nil, lc, 2*time.Minute, 5*time.Second)
+	go proxy.CopyUDP1(lc, nil, pc, 2*time.Minute, 5*time.Second,s.proxy.GetRateLimit())
+	proxy.CopyUDP1(pc, nil, lc, 2*time.Minute, 5*time.Second,s.proxy.GetRateLimit())
 }

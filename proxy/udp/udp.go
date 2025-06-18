@@ -101,7 +101,7 @@ func (s *UDP) serveSession(session *session) {
 	defer dstPC.Close()
 
 	go func() {
-		proxy.CopyUDP(session, session.src, dstPC, 2*time.Minute, 5*time.Second)
+		proxy.CopyUDP1(session, session.src, dstPC, 2*time.Minute, 5*time.Second, s.proxy.GetRateLimit())
 		nm.Delete(session.key)
 		close(session.finCh)
 	}()

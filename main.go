@@ -29,7 +29,8 @@ var (
 func main() {
 	// global rule proxy
 	pxy := rule.NewProxy(config.Forwards, &config.Strategy, config.rules)
-
+	pxy.SetRateLimit(config.RateLimit)
+	log.F("[main] Set ratelimit: %d", config.RateLimit )
 	// ipset manager
 	ipsetM, _ := ipset.NewManager(config.rules)
 

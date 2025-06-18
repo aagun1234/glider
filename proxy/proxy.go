@@ -21,6 +21,8 @@ type Proxy interface {
 	
 	// Update In/Out Bytes while using the dialer from proxy.
 	UpdateInOut(dialer Dialer, inbytes uint64, outbytes uint64)
+	SetRateLimit(rate int64)
+	GetRateLimit()( int64)
 }
 
 var (
