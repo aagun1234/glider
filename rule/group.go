@@ -244,6 +244,7 @@ func (p *FwdrGroup) Check() {
 	var checker Checker
 	switch u.Scheme {
 	case "tcp":
+		log.F("[group] %s: new TCP Check")
 		checker = newTcpChecker(addr, timeout)
 	case "http", "https":
 		expect := "HTTP" // default: check the first 4 chars in response
@@ -251,8 +252,10 @@ func (p *FwdrGroup) Check() {
 		if ex := params.Get("expect"); ex != "" {
 			expect = ex
 		}
+		log.F("[group] %s: new HTTP Check")
 		checker = newHttpChecker(addr, u.RequestURI(), expect, timeout, u.Scheme == "https")
 	case "file":
+		log.F("[group] %s: new File Check")
 		checker = newFileChecker(u.Host + u.Path)
 	default:
 		log.F("[group] %s: unknown scheme in check config `%s`, disable health checking", p.name, p.config.Check)
