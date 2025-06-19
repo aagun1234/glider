@@ -122,6 +122,7 @@ func Relay1(left, right net.Conn, rate int64) (uint64,uint64,error) {
 
 	return Inbytes,Outbytes,nil
 }
+
 // Copy copies from src to dst.
 func Copy(dst io.Writer, src io.Reader) (written int64, err error) {
 	dst = underlyingWriter(dst)
@@ -147,7 +148,6 @@ type RateLimitedWriter struct {
 	limit      int64
 	mu         sync.Mutex
 	lastWrite  time.Time
-	bytesLastWrite int64
 }
 
 func NewRateLimitedWriter(w io.Writer, limit int64) *RateLimitedWriter {
@@ -158,31 +158,6 @@ func NewRateLimitedWriter(w io.Writer, limit int64) *RateLimitedWriter {
 	}
 }
 
-func (rlw *RateLimitedWriter) Write1(p []byte) (n int, err error) {
-	rlw.mu.Lock()
-	defer rlw.mu.Unlock()
-
-	now := time.Now()
-	sinceLastWrite := now.Sub(rlw.lastWrite)
-	log.F("[conn]  RateLimit Write, ratelimit: %d, bytesLastWrite: %d, bytesToWrite: %d , Duration: %v", rlw.limit, rlw.bytesLastWrite, len(p), sinceLastWrite.Seconds())
-	if rlw.bytesLastWrite+int64(len(p)) > int64(float64(rlw.limit)*sinceLastWrite.Seconds()) {
-		secs:=(float64(rlw.bytesLastWrite+int64(len(p)))-float64(rlw.limit)*sinceLastWrite.Seconds())/float64(rlw.limit)
-		log.F("[conn]  RateLimit Write, sleep: %v ", secs)
-		time.Sleep(time.Duration(secs * float64(time.Second)))
-		rlw.bytesLastWrite = 0
-		now = time.Now()
-	} else {
-		rlw.bytesLastWrite = int64(len(p))
-	}
-
-	n, err = rlw.w.Write(p)
-	if rlw.bytesLastWrite>0 && rlw.bytesLastWrite>int64(n) {
-		rlw.bytesLastWrite=int64(n)
-	}
-	log.F("[conn]  RateLimit Write, bytesWrite: %d ",n)
-	rlw.lastWrite = now
-	return n, err
-}
 
 func (rlw *RateLimitedWriter) Write(p []byte) (n int, err error) {
 	rlw.mu.Lock()
@@ -190,17 +165,17 @@ func (rlw *RateLimitedWriter) Write(p []byte) (n int, err error) {
 
 
 	n, err = rlw.w.Write(p)
-	now := time.Now()
-	log.F("[conn]  RateLimit Write, bytesWrite: %d ",n)
-	sinceLastWrite := now.Sub(rlw.lastWrite)
-	secs:=float64(n)-float64(rlw.limit)*sinceLastWrite.Seconds()
-	log.F("[conn]  RateLimit Write, Duration: %v ", sinceLastWrite.Seconds())
-	if secs>0 {
-		secs=secs/float64(rlw.limit)
-		log.F("[conn]  RateLimit Write, sleep: %v ", secs)
-		time.Sleep(time.Duration(secs * float64(time.Second)))
-	} 
-	rlw.lastWrite = now
+	if rlw.limit>0 {
+		now := time.Now()
+		sinceLastWrite := now.Sub(rlw.lastWrite)
+		secs:=float64(n)-float64(rlw.limit)*sinceLastWrite.Seconds()
+		if secs>0 {
+			secs=secs/float64(rlw.limit)
+			log.F("[conn]  RateLimit Write, %d bytes, sleep: %v seconds", n, secs)
+			time.Sleep(time.Duration(secs * float64(time.Second)))
+		} 
+		rlw.lastWrite = now
+	}
 	
 	
 	return n, err
@@ -212,7 +187,6 @@ type RateLimitedReader struct {
 	limit      int64
 	mu         sync.Mutex
 	lastRead   time.Time
-	bytesLastRead int64
 }
 
 func NewRateLimitedReader(r io.Reader, limit int64) *RateLimitedReader {
@@ -223,51 +197,23 @@ func NewRateLimitedReader(r io.Reader, limit int64) *RateLimitedReader {
 	}
 }
 
-func (rlr *RateLimitedReader) Read1(p []byte) (n int, err error) {
-	rlr.mu.Lock()
-	defer rlr.mu.Unlock()
-
-	now := time.Now()
-	sinceLastRead := now.Sub(rlr.lastRead)
-	log.F("[conn]  RateLimit Write, ratelimit: %d, bytesLastWrite: %d, bytesToWrite: %d , Duration: %v", rlr.limit, rlr.bytesLastRead, len(p), sinceLastRead.Seconds())
-	if rlr.bytesLastRead+int64(len(p)) > int64(float64(rlr.limit)*sinceLastRead.Seconds()) {
-		secs:=(float64(rlr.bytesLastRead+int64(len(p)))-float64(rlr.limit)*sinceLastRead.Seconds())/float64(rlr.limit)
-		log.F("[conn]  RateLimit Read, sleep: %v ", secs)
-		time.Sleep(time.Duration(secs * float64(time.Second)))
-		rlr.bytesLastRead = 0
-		now = time.Now()
-	} else {
-		rlr.bytesLastRead = int64(len(p))
-	}
-
-
-	n, err = rlr.r.Read(p)
-	if rlr.bytesLastRead>0 && rlr.bytesLastRead>int64(n) {
-		rlr.bytesLastRead=int64(n)
-	}
-	log.F("[conn]  RateLimit Read, bytesRead: %d ", n)
-	rlr.lastRead = now
-	return n, err
-}
-
 func (rlr *RateLimitedReader) Read(p []byte) (n int, err error) {
 	rlr.mu.Lock()
 	defer rlr.mu.Unlock()
 
 	n, err = rlr.r.Read(p)
-	log.F("[conn]  RateLimit Read, bytesRead: %d ", n)
-	now := time.Now()
-	sinceLastRead := now.Sub(rlr.lastRead)
+	if rlr.limit>0 {
+		now := time.Now()
+		sinceLastRead := now.Sub(rlr.lastRead)
 
-	secs:=float64(n)-float64(rlr.limit)*sinceLastRead.Seconds()
-	log.F("[conn]  RateLimit Read, Duration: %v ", sinceLastRead.Seconds())
-	if secs > 0 {
-		secs:=secs/float64(rlr.limit)
-		log.F("[conn]  RateLimit Read, sleep: %v ", secs)
-		time.Sleep(time.Duration(secs * float64(time.Second)))	
+		secs:=float64(n)-float64(rlr.limit)*sinceLastRead.Seconds()
+		if secs > 0 {
+			secs:=secs/float64(rlr.limit)
+			log.F("[conn]  RateLimit Read, %d bytes, sleep: %v seconds", n, secs)
+			time.Sleep(time.Duration(secs * float64(time.Second)))	
+		}
+		rlr.lastRead = now
 	}
-	rlr.lastRead = now
-	
 	return n, err
 }
 
@@ -278,24 +224,26 @@ func Copy1(dst io.Writer, src io.Reader,rateLimit int64) (written int64, err err
 	case "linux", "windows", "dragonfly", "freebsd", "solaris":
 		if _, ok := dst.(*net.TCPConn); ok && worthTry(src) {
 			if wt, ok := src.(io.WriterTo); ok {
-				
-				limitedDst := NewRateLimitedWriter(dst, rateLimit)
-				return wt.WriteTo(limitedDst)
-				//return wt.WriteTo(dst)
+				if rateLimit>0 {
+					limitedDst := NewRateLimitedWriter(dst, rateLimit)
+					return wt.WriteTo(limitedDst)
+				} else {
+					return wt.WriteTo(dst)
+				}
 			}
 			if rt, ok := dst.(io.ReaderFrom); ok {
-				
-				limitedSrc := NewRateLimitedReader(src, rateLimit)
-				return rt.ReadFrom(limitedSrc)
-				//return rt.ReadFrom(src)
+				if rateLimit>0 {
+					limitedSrc := NewRateLimitedReader(src, rateLimit)
+					return rt.ReadFrom(limitedSrc)
+				} else {
+					return rt.ReadFrom(src)
+				}
 			}
 		}
 	}
 	if rateLimit<=0 {
-		log.F("[conn]  Copy without ratelimit")
 		return CopyBuffer(dst, src)
 	} else {
-		log.F("[conn]  Copy with ratelimit: %d", rateLimit )
 		return CopyBuffer1(dst, src,rateLimit)
 	}
 }
@@ -445,8 +393,9 @@ func CopyBuffer1(dst io.Writer, src io.Reader, rate int64) (written int64, err e
 		if nr > 0 {
 			// Check if we have enough tokens to proceed
 			if !bucket.Take(int64(nr)) {
-				time.Sleep(time.Second / time.Duration(rate))
 				log.F("[conn]  CopyBuffer ratelimit, sleep: %d", time.Second / time.Duration(rate) )
+				time.Sleep(time.Second / time.Duration(rate))
+				
 				continue
 			}
 
@@ -504,7 +453,7 @@ func CopyUDP(dst net.PacketConn, writeTo net.Addr, src net.PacketConn, timeout t
 }
 
 
-
+//CopyUDP with speed limit
 func CopyUDP1(dst net.PacketConn, writeTo net.Addr, src net.PacketConn, timeout time.Duration, step time.Duration, rate int64) error {
 	buf := pool.GetBuffer(UDPBufSize)
 	defer pool.PutBuffer(buf)
@@ -526,6 +475,7 @@ func CopyUDP1(dst net.PacketConn, writeTo net.Addr, src net.PacketConn, timeout 
 
 		// Check if we have enough tokens to proceed
 		if !bucket.Take(int64(n)) {
+			log.F("[conn]  CopyUDP ratelimit, sleep: %d", time.Second / time.Duration(rate) )
 			time.Sleep(time.Second / time.Duration(rate))
 			continue
 		}
