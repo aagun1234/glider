@@ -229,7 +229,7 @@
 				return `${bytes}B`;
 			} else if (bytes < 1024 * 1024) {
 				return `${(bytes / 1024).toFixed(1)}K`;
-			} else if (bytes < 1024 * 1024 *1024) {
+			} else if (bytes < 1024 * 1024 * 1024) {
 				return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
 			} else {
 				return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}G`;
