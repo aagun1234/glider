@@ -8,7 +8,38 @@
 
 Fork from https://github.com/nadoo/glider
 
-Add a management interface:
+# Add several setting:
+
+[glider.conf]
+
+...
+
+ratelimit=300000
+  
+  #dataratelimit,300000 Bytes/second
+
+checklowerpriority=true
+  
+  #health chaek for unavailable forwarders with lower priority
+
+
+
+# Add weighted RR balancer:
+
+[glider.conf]
+
+...
+
+strategy=prr
+  
+  #prr: Priority based Round Robin mode
+  
+  #lrr: Latency based Round Robin mode
+
+
+
+
+# Add a management interface:
 
 [glider.conf]
 
