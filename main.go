@@ -142,10 +142,13 @@ func startServer(p *rule.Proxy, addr string) {
 
 	// 定义HTTP处理函数
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		handler1(w, r, p,auser,apass)
+		handler1(w, r, p, auser, apass)
 	})
 	http.HandleFunc("/operation", func(w http.ResponseWriter, r *http.Request) {
-		handler2(w, r, p,auser,apass)
+		handler2(w, r, p, auser, apass)
+	})
+	http.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
+		handler3(w, r, config, auser, apass)
 	})
 
 	// 启动HTTP服务器
@@ -202,6 +205,48 @@ func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass 
 	}
 	// 将结构体数组编码为JSON并写入响应
 	if err := json.NewEncoder(w).Encode(pstatus); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+type statConf struct {
+	Verbose     bool	`json:"verbose"`
+	LogFlags    int	 `json:"logflag"`
+	TCPBufSize  int	 `json:"tcpbufsize"`
+	UDPBufSize  int	 `json:"udpbufsize"`
+	RateLimit   int64	 `json:"ratelimit"`
+	Listens     []string	 `json:"listens"`
+	StatusServer string	 `json:"statserver"`
+	Forwards    []string	 `json:"forwards"`
+	RuleFiles   []string	 `json:"rulefiles"`
+	RulesDir    string	 `json:"rulesdir"`
+	DNS         string	 `json:"dns"`
+	Services    []string	 `json:"services"`
+}
+
+func handler3(w http.ResponseWriter, r *http.Request,c *Config, user,pass string) {
+
+	sconf := statConf {
+		Verbose:     c.Verbose,
+		LogFlags:    c.LogFlags,
+		TCPBufSize:  c.TCPBufSize,
+		UDPBufSize:  c.UDPBufSize,
+		RateLimit:   c.RateLimit,
+		Listens:     c.Listens,
+		StatusServer: c.StatusServer,
+		Forwards:    c.Forwards,
+		RuleFiles:   c.RuleFiles,
+		RulesDir:    c.RulesDir,
+		DNS:         c.DNS,
+		Services:    c.Services,
+	}
+
+	// 设置响应头为JSON格式
+	w.Header().Set("Content-Type", "application/json")
+
+	// 将结构体数组编码为JSON并写入响应
+	if err := json.NewEncoder(w).Encode(sconf); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
