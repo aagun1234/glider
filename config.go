@@ -26,6 +26,7 @@ type Config struct {
 
 	Listens []string
 	StatusServer string
+	StatusACL []string
 
 	Forwards []string
 	Strategy rule.Strategy
@@ -102,6 +103,7 @@ check=disable: disable health check`)
 
 	//status server
 	flag.StringVar(&conf.StatusServer, "status", "", "status server")
+	flag.StringSliceVar(&conf.StatusACL, "acl", nil, "status server ACL")
 
 
 	flag.Usage = usage

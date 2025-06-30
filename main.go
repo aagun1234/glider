@@ -30,7 +30,7 @@ func main() {
 	// global rule proxy
 	pxy := rule.NewProxy(config.Forwards, &config.Strategy, config.rules)
 	pxy.SetRateLimit(config.RateLimit)
-	log.F("[main] Set ratelimit: %d", config.RateLimit )
+	
 	// ipset manager
 	ipsetM, _ := ipset.NewManager(config.rules)
 
@@ -76,7 +76,7 @@ func main() {
 	pxy.Check()
 	//start status api server
 	if config.StatusServer!="" {
-		go startServer(pxy,config.StatusServer)
+		go startServer(pxy,config.StatusServer, config.StatusACL)
 	}
 	
 	// run proxy servers
@@ -120,7 +120,7 @@ func main() {
 //  check返回的并不是check的结果，而是立即check的forward的信息，结果要等健康检查完成后再查询
 //  available的必定是enabled的，disabled的一定不是available的，低优先级的一定不是available的
 
-func startServer(p *rule.Proxy, addr string) {
+func startServer(p *rule.Proxy, addr string, acl []string) {
 
 	saddr :=addr
 	auser:=""
@@ -142,13 +142,13 @@ func startServer(p *rule.Proxy, addr string) {
 
 	// 定义HTTP处理函数
 	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		handler1(w, r, p, auser, apass)
+		handler1(w, r, p, auser, apass, acl)
 	})
 	http.HandleFunc("/operation", func(w http.ResponseWriter, r *http.Request) {
-		handler2(w, r, p, auser, apass)
+		handler2(w, r, p, auser, apass, acl)
 	})
 	http.HandleFunc("/config", func(w http.ResponseWriter, r *http.Request) {
-		handler3(w, r, config, auser, apass)
+		handler3(w, r, config, auser, apass, acl)
 	})
 
 	// 启动HTTP服务器
@@ -159,8 +159,75 @@ func startServer(p *rule.Proxy, addr string) {
 	}
 }
 
+
+
+// IsIPInSubnets 检查 IP 是否在给定的子网列表中
+func IsIPInSubnets(ipStr string, subnets []string) (bool, error) {
+	
+	if len(subnets) <=0 {
+		return true,nil
+	}
+	
+	// 处理带端口的 IP（如 "192.168.1.1:8080"）
+	ipStr, _, err := net.SplitHostPort(ipStr)
+	if err != nil {
+		// 如果没有端口（如直接是 "192.168.1.1"），继续解析
+		ipStr = strings.TrimSpace(ipStr)
+	}
+
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false, err
+	}
+
+	for _, subnet := range subnets {
+			
+		if strings.Contains(subnet,",") {
+			subnets1 := strings.Split(subnet, ",")
+			for _, subnet1 := range subnets1 {
+				_, cidr, err := net.ParseCIDR(subnet1)
+				if err != nil {
+					log.Printf("[main] Check ACL error: %s", err)
+					continue
+				}
+
+				if cidr.Contains(ip) {
+					return true, nil
+				}
+			}
+		} else {
+			_, cidr, err := net.ParseCIDR(subnet)
+			if err != nil {
+				log.Printf("[main] Check ACL error: %s", err)
+				return false, err
+			}
+
+			if cidr.Contains(ip) {
+				return true, nil
+			}
+		}
+	}
+
+	return false, nil
+}
+
+
 // 处理HTTP请求的函数
-func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass string) {
+func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass string, acl []string) {
+
+	ip := r.RemoteAddr
+	isAllowed, err := IsIPInSubnets(ip, acl)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !isAllowed {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		log.Printf("[main] StatusServer: Unauthorized from %s", r.RemoteAddr)
+		return
+	}
+	
 	pstatus:=[]rule.ProxyStatus{}
 	index:=0
 	//fmt.Printf("API : %v",r.URL)
@@ -169,7 +236,7 @@ func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass 
 	available := query.Get("available") 
 	url := query.Get("url")
 	
-	index,err:=strconv.Atoi(query.Get("id"))
+	index,err =strconv.Atoi(query.Get("id"))
 	if err!=nil {
 		index=0
 	}
@@ -178,17 +245,21 @@ func handler1(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass 
 		prio=-1
 	}
 	
+	
+	
 	if user!="" {
 		username, password, ok := r.BasicAuth()
 		if !ok {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			log.Printf("[main] StatusServer: %s:%s Unauthorized from %s", username, password, r.RemoteAddr)
 			return
 		}
 
 		// 验证用户名和密码
 		if username !=user || password!=pass {
 			http.Error(w, "Unauthorized for "+username+":"+password, http.StatusUnauthorized)
+			log.Printf("[main] StatusServer: %s:%s Unauthorized from %s", username, password, r.RemoteAddr)
 			return
 		}
 	}	
@@ -225,7 +296,36 @@ type statConf struct {
 	Services    []string	 `json:"services"`
 }
 
-func handler3(w http.ResponseWriter, r *http.Request,c *Config, user,pass string) {
+func handler3(w http.ResponseWriter, r *http.Request,c *Config, user,pass string, acl []string) {
+
+	ip := r.RemoteAddr
+	isAllowed, err := IsIPInSubnets(ip, acl)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !isAllowed {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		log.Printf("[main] StatusServer: Unauthorized from %s", r.RemoteAddr)
+		return
+	}
+
+	if user!="" {
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// 验证用户名和密码
+		if username !=user || password!=pass {
+			http.Error(w, "Unauthorized for "+username+":"+password, http.StatusUnauthorized)
+			return
+		}
+	}	
+
 
 	sconf := statConf {
 		Verbose:     c.Verbose,
@@ -254,8 +354,20 @@ func handler3(w http.ResponseWriter, r *http.Request,c *Config, user,pass string
 
 
 
-func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass string) {
-		//fmt.Printf("API : %v",r.URL)
+func handler2(w http.ResponseWriter, r *http.Request,pxy *rule.Proxy, user,pass string, acl []string) {
+	ip := r.RemoteAddr
+	isAllowed, err := IsIPInSubnets(ip, acl)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if !isAllowed {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		log.Printf("[main] StatusServer: Unauthorized from %s", r.RemoteAddr)
+		return
+	}
+
 	query := r.URL.Query()
 	op := query.Get("op")  
 	url := query.Get("url")

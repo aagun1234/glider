@@ -39,7 +39,7 @@ func NewProxy(mainForwarders []string, mainStrategy *Strategy, rules []*Config) 
 		for _, s := range r.IP {
 			ip, err := netip.ParseAddr(s)
 			if err != nil {
-				log.F("[rule] parse ip error: %s", err)
+				log.Printf("[rule] parse ip error: %s", err)
 				continue
 			}
 			rd.ipMap.Store(ip, group)
@@ -48,7 +48,7 @@ func NewProxy(mainForwarders []string, mainStrategy *Strategy, rules []*Config) 
 		for _, s := range r.CIDR {
 			cidr, err := netip.ParsePrefix(s)
 			if err != nil {
-				log.F("[rule] parse cidr error: %s", err)
+				log.Printf("[rule] parse cidr error: %s", err)
 				continue
 			}
 			rd.cidrMap.Store(cidr, group)

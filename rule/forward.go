@@ -193,7 +193,7 @@ func (f *Forwarder) IncFailures() {
 	// log.F("[forwarder] %s(%d) recorded %d failures, maxfailures: %d", f.addr, f.Priority(), failures, f.MaxFailures())
 
 	if failures == f.MaxFailures() && f.Enabled() {
-		log.F("[forwarder] %s(%d) reaches maxfailures: %d", f.addr, f.Priority(), f.MaxFailures())
+		log.Printf("[forwarder] %s(%d) reaches maxfailures: %d, put offline", f.addr, f.Priority(), f.MaxFailures())
 		f.Disable()
 	}
 }
@@ -251,16 +251,14 @@ func (f *Forwarder) Disable() {
 // Enable the forwarder.
 func (f *Forwarder) MEnable() {
 	if atomic.CompareAndSwapUint32(&f.mdisabled, 1, 0) {
-		for _, h := range f.handlers {
-			h(f)
+		if atomic.CompareAndSwapUint32(&f.disabled, 1, 0) {
+			atomic.StoreUint32(&f.failures, 0)
+			for _, h := range f.handlers {
+				h(f)
+			}
 		}
 	}
-	if atomic.CompareAndSwapUint32(&f.disabled, 1, 0) {
-		for _, h := range f.handlers {
-			h(f)
-		}
-	}
-	atomic.StoreUint32(&f.failures, 0)
+
 }
 
 // Disable the forwarder.

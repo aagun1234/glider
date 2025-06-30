@@ -234,7 +234,7 @@ func (p *FwdrGroup) Check() {
 
 	u, err := url.Parse(p.config.Check)
 	if err != nil {
-		log.F("[group] %s: parse check config error: %s, disable health checking", p.name, err)
+		log.Printf("[group] %s: parse check config error: %s, disable health checking", p.name, err)
 		return
 	}
 
@@ -275,6 +275,8 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 	fwdr.SetTotalFails(0)
 	fwdr.SetFailures(0)
 	aa:=uint32(1)
+	
+	notsupport:=0
 	//intval := time.Duration(p.config.CheckInterval) * time.Second
 	if p.config.Strategy=="prr" {
 		aa=uint32(p.config.PriorityStep)
@@ -313,10 +315,16 @@ func (p *FwdrGroup) check(fwdr *Forwarder, checker Checker) {
 		if err != nil {
 			if errors.Is(err, proxy.ErrNotSupported) {
 				fwdr.SetMaxFailures(0)
-				log.F("[check] %s: %s(%d), %s, stop checking", p.name, fwdr.Addr(), fwdr.Priority(), err)
+				log.F("[check] %s: %s(%d), %s", p.name, fwdr.Addr(), fwdr.Priority(), err)
 				fwdr.Enable()
-				break
+				notsupport++
+				if notsupport>3 {
+					log.Printf("[check] %s: %s(%d), %s lasted for 3 times , stop checking", p.name, fwdr.Addr(), fwdr.Priority(), err)
+					break
+				}
+				continue
 			}
+			notsupport=0
 
 			wait++
 			if wait > 6 {
