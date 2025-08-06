@@ -487,6 +487,8 @@ func handler4(w http.ResponseWriter, r *http.Request, pxy *rule.Proxy, user, pas
 	runtimeMemStats.HeapAlloc.Set(float64(memStats.HeapAlloc))
 
 	// 注册自定义 collector
+	log.Printf("[main] StatusServer, prome status: %v", pstatus)
+
 	collector := &ProxyStatusCollector{pstatus: pstatus}
 	registry.MustRegister(collector)
 
